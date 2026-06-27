@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BricolageGrotesque_700Bold } from "@expo-google-fonts/bricolage-grotesque/700Bold";
 import { BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque/800ExtraBold";
 import { IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono/500Medium";
@@ -6,8 +7,9 @@ import { InstrumentSans_500Medium } from "@expo-google-fonts/instrument-sans/500
 import { InstrumentSans_600SemiBold } from "@expo-google-fonts/instrument-sans/600SemiBold";
 import { InstrumentSans_700Bold } from "@expo-google-fonts/instrument-sans/700Bold";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router/stack";
+import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 import { colors } from "@/design/tokens";
@@ -22,8 +24,19 @@ export default function RootLayout() {
     InstrumentSans_700Bold,
     IBMPlexMono_500Medium,
   });
+  const [checked, setChecked] = useState(false);
 
-  if (!fontsLoaded) {
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    AsyncStorage.getItem("@runde:onboarding_done").then((val) => {
+      if (!val) {
+        router.replace("/onboarding");
+      }
+      setChecked(true);
+    });
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded || !checked) {
     return <View style={{ flex: 1, backgroundColor: colors.stageBerry }} />;
   }
 
