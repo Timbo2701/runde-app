@@ -16,6 +16,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { trackAchievementEvent } from "@/lib/achievement-tracker";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -169,10 +170,15 @@ export function FinalScreen() {
   useEffect(() => {
     // Track stats: +1 round played, +1 win if local player won
     const playerWon = winner.name === myName;
-    void setProfile({
-      roundsPlayed: roundsPlayed + 1,
-      wins: playerWon ? wins + 1 : wins,
-    });
+    const newWins = playerWon ? wins + 1 : wins;
+    void setProfile({ roundsPlayed: roundsPlayed + 1, wins: newWins });
+
+    // Achievement events
+    void trackAchievementEvent({ type: "round_played", mode: "klassiker" });
+    void trackAchievementEvent({ type: "day_played" });
+    if (playerWon) {
+      void trackAchievementEvent({ type: "round_won", mode: "klassiker", totalWins: newWins });
+    }
   }, []); // run once on mount
 
   useEffect(() => {

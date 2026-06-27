@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { useTrackEvent } from "@/lib/use-achievements";
+import { AchievementToast } from "@/ui/primitives/achievement-toast";
 import { BrandButton } from "@/ui/primitives/brand-button";
 
 const BOT_NAME = "Mika";
@@ -74,6 +77,7 @@ export function QuizResult({ params, onNext, isLastRound, roundNumber, totalRoun
   const { name: profileName } = useProfile();
   const myName = profileName || "Du";
   const reducedMotion = useReducedMotion();
+  const [toastDismissed, setToastDismissed] = useState(false);
 
   const playerAnswer = params.playerAnswer ?? "";
   const botAnswer = params.botAnswer ?? "";
@@ -88,6 +92,11 @@ export function QuizResult({ params, onNext, isLastRound, roundNumber, totalRoun
 
   const playerCorrect = playerAnswer === correctAnswer;
   const botCorrect = botAnswer === correctAnswer;
+
+  // Track achievement event once on mount
+  const newlyUnlocked = useTrackEvent(
+    playerCorrect ? { type: "quiz_correct" } : { type: "quiz_wrong" }
+  );
 
   const bothCorrect = playerCorrect && botCorrect;
   const bothWrong = !playerCorrect && !botCorrect;
@@ -104,6 +113,9 @@ export function QuizResult({ params, onNext, isLastRound, roundNumber, totalRoun
 
   return (
     <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 22 }}>
+      {!toastDismissed && newlyUnlocked.length > 0 && (
+        <AchievementToast unlockedIds={newlyUnlocked} onDismiss={() => setToastDismissed(true)} />
+      )}
       {/* Header */}
       <Animated.View
         entering={reducedMotion ? undefined : FadeInDown.duration(300)}

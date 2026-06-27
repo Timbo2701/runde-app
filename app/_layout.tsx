@@ -12,6 +12,7 @@ import { router, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { colors } from "@/design/tokens";
 
@@ -29,7 +30,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded) return;
-    // DEV: always show onboarding first
     router.replace("/onboarding");
     setChecked(true);
   }, [fontsLoaded]);
@@ -39,15 +39,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ProfileProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: "fade",
-          contentStyle: { backgroundColor: colors.stageBerry },
-        }}
-      />
-    </ProfileProvider>
+    <SafeAreaProvider>
+      <ProfileProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: "fade",
+            contentStyle: { backgroundColor: colors.stageBerry },
+          }}
+        />
+      </ProfileProvider>
+    </SafeAreaProvider>
   );
 }

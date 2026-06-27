@@ -1,4 +1,5 @@
 import type { GameModeType, RoundQuestion } from "@/lib/game-types";
+import { ZEICHEN_PROMPTS } from "./zeichen-prompts";
 
 const KLASSIKER_QUESTIONS: RoundQuestion[] = [
   {
@@ -451,7 +452,7 @@ const ALL_QUESTIONS: Record<GameModeType, RoundQuestion[]> = {
   "schaetzrunde": SCHAETZ_QUESTIONS,
   "blitz-quiz": QUIZ_QUESTIONS,
   "bluff": BLUFF_QUESTIONS,
-  "zeichen-vote": [],
+  "zeichen-vote": ZEICHEN_PROMPTS,
   "reihenfolge": [],
 };
 

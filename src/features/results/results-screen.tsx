@@ -8,6 +8,7 @@ import { BluffResult } from "./modes/bluff-result";
 import { KlassikerResult } from "./modes/klassiker-result";
 import { QuizResult } from "./modes/quiz-result";
 import { SchaetzResult } from "./modes/schaetz-result";
+import { ZeichenVoteResult } from "./modes/zeichen-vote-result";
 
 const TOTAL_ROUNDS = 5;
 
@@ -44,6 +45,8 @@ export function ResultsScreen() {
     ? colors.stageGrape
     : mode === "blitz-quiz"
     ? colors.stageBerry
+    : mode === "zeichen-vote"
+    ? colors.stageBerry
     : colors.stageGrape;
 
   const pattern: "dots" | "rings" = mode === "blitz-quiz" ? "dots" : "rings";
@@ -56,6 +59,8 @@ export function ResultsScreen() {
         return <QuizResult {...sharedProps} />;
       case "bluff":
         return <BluffResult {...sharedProps} />;
+      case "zeichen-vote":
+        return <ZeichenVoteResult {...sharedProps} />;
       default:
         return <KlassikerResult {...sharedProps} />;
     }

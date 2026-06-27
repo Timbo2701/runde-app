@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Image, Pressable, Share, Switch, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { ACHIEVEMENTS } from "@/data/achievements";
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useAchievements } from "@/lib/use-achievements";
 import { getInitials } from "@/lib/room";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
@@ -166,8 +166,9 @@ export function ProfileScreen() {
     { emoji: "🎯", label: "Beste Kategorie", value: "Schätzen" },
   ];
 
-  const previewAchievements = ACHIEVEMENTS.slice(0, 4);
-  const unlockedCount = ACHIEVEMENTS.filter((a) => a.isUnlocked).length;
+  const { achievements } = useAchievements();
+  const previewAchievements = achievements.slice(0, 4);
+  const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
 
   return (
     <StageScreen stageColor={colors.stageCoral} pattern="dots" scrollEnabled>
@@ -344,7 +345,7 @@ export function ProfileScreen() {
                 borderRadius: radii.round,
               }}>
                 <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 11 }}>
-                  {unlockedCount}/{ACHIEVEMENTS.length}
+                  {unlockedCount}/{achievements.length}
                 </Text>
               </View>
             </View>
@@ -354,6 +355,35 @@ export function ProfileScreen() {
               ))}
             </View>
           </View>
+
+          {/* Kosmetik Banner */}
+          <Pressable
+            onPress={() => router.push("/cosmetics" as never)}
+            style={({ pressed }) => ({
+              borderRadius: radii.card,
+              borderCurve: "continuous",
+              backgroundColor: "rgba(111,43,211,0.12)",
+              borderWidth: 1.5,
+              borderColor: "rgba(111,43,211,0.4)",
+              padding: spacing.xl,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              opacity: pressed ? 0.85 : 1,
+            })}
+            accessibilityRole="button"
+          >
+            <Text style={{ fontSize: 28 }}>🎨</Text>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
+                Kosmetik
+              </Text>
+              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12 }}>
+                Rahmen, Titel & Gewinner-Effekte auswählen
+              </Text>
+            </View>
+            <Text style={{ color: "#b78af0", fontFamily: fonts.bodyBold, fontSize: 18 }}>→</Text>
+          </Pressable>
 
           {/* Shop Banner */}
           <Pressable

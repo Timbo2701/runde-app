@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useTrackEvent } from "@/lib/use-achievements";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { AchievementToast } from "@/ui/primitives/achievement-toast";
 import { BrandButton } from "@/ui/primitives/brand-button";
 
 const BOT_NAME = "Mika";
@@ -49,8 +52,15 @@ export function SchaetzResult({ params, onNext, isLastRound, roundNumber, totalR
   const winner = ranked[0];
   const isTie = ranked.length > 1 && ranked[0].deviation === ranked[1].deviation;
 
+  const playerExact = ranked.find((p) => p.id === "player")?.deviation === 0;
+  const [toastDismissed, setToastDismissed] = useState(false);
+  const newlyUnlocked = useTrackEvent(playerExact ? { type: "schaetz_exact" } : null);
+
   return (
     <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 24 }}>
+      {!toastDismissed && newlyUnlocked.length > 0 && (
+        <AchievementToast unlockedIds={newlyUnlocked} onDismiss={() => setToastDismissed(true)} />
+      )}
       <Animated.View
         entering={reducedMotion ? undefined : FadeInDown.duration(300)}
         style={{ alignItems: "center", gap: 8 }}

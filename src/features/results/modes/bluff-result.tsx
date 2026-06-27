@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useTrackEvent } from "@/lib/use-achievements";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { AchievementToast } from "@/ui/primitives/achievement-toast";
 import { BrandButton } from "@/ui/primitives/brand-button";
 
 const BOT_NAME = "Mika";
@@ -80,6 +83,11 @@ export function BluffResult({ params, onNext, isLastRound, roundNumber, totalRou
   const isTie = players[0].points === players[1]?.points;
   const winner = isTie ? null : players[0];
 
+  const [toastDismissed, setToastDismissed] = useState(false);
+  const newlyUnlocked = useTrackEvent(
+    otherVotesOnPlayerFake >= 1 ? { type: "bluff_trap_caught", votes: otherVotesOnPlayerFake } : null
+  );
+
   // Build answer reveal list — note: "Deine Falle" is only shown to the local player
   // For a multi-device game this would need server-side reveal; here it's 1P+Bot so safe.
   const allVotes = [playerVote, botVote];
@@ -134,6 +142,9 @@ export function BluffResult({ params, onNext, isLastRound, roundNumber, totalRou
 
   return (
     <View style={{ flex: 1, justifyContent: "center", paddingVertical: 12, gap: 18 }}>
+      {!toastDismissed && newlyUnlocked.length > 0 && (
+        <AchievementToast unlockedIds={newlyUnlocked} onDismiss={() => setToastDismissed(true)} />
+      )}
 
       {/* Header */}
       <Animated.View

@@ -10,6 +10,7 @@ import { BluffPlay } from "./modes/bluff-play";
 import { KlassikerPlay } from "./modes/klassiker-play";
 import { QuizPlay } from "./modes/quiz-play";
 import { SchaetzPlay } from "./modes/schaetz-play";
+import { ZeichenVotePlay } from "./modes/zeichen-vote-play";
 
 const TOTAL_ROUNDS = 5;
 
@@ -18,6 +19,7 @@ const stageColorForMode: Record<string, string> = {
   schaetzrunde: colors.stageCoral,
   "blitz-quiz": colors.stageGrape,
   bluff: colors.stageBerry,
+  "zeichen-vote": colors.stageBerry,
 };
 
 const patternForMode: Record<string, "dots" | "rings"> = {
@@ -25,6 +27,7 @@ const patternForMode: Record<string, "dots" | "rings"> = {
   schaetzrunde: "dots",
   "blitz-quiz": "rings",
   bluff: "dots",
+  "zeichen-vote": "rings",
 };
 
 export function PlayScreen() {
@@ -99,6 +102,18 @@ export function PlayScreen() {
                 correctAnswer: question.correctAnswer ?? "",
                 questionPrompt: question.prompt,
               })
+            }
+          />
+        );
+      case "zeichen-vote":
+        return (
+          <ZeichenVotePlay
+            code={code}
+            roundNumber={roundNumber}
+            totalRounds={TOTAL_ROUNDS}
+            question={question}
+            onResult={(playerVotedFor) =>
+              goToResults({ playerVotedFor, promptText: question.prompt })
             }
           />
         );

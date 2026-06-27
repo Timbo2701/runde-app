@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Image, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useTrackEvent } from "@/lib/use-achievements";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { AchievementToast } from "@/ui/primitives/achievement-toast";
 import { BrandButton } from "@/ui/primitives/brand-button";
 
 const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
@@ -46,8 +49,15 @@ export function KlassikerResult({ params, onNext, isLastRound, roundNumber, tota
   const colorFor = (person: string) =>
     person === BOT_NAME ? colors.stageCoral : colors.stageBerry;
 
+  const playerGotAllVotes = votes.length > 0 && (tally[myName] ?? 0) === votes.length;
+  const [toastDismissed, setToastDismissed] = useState(false);
+  const newlyUnlocked = useTrackEvent(playerGotAllVotes ? { type: "klassiker_all_votes" } : null);
+
   return (
     <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 28 }}>
+      {!toastDismissed && newlyUnlocked.length > 0 && (
+        <AchievementToast unlockedIds={newlyUnlocked} onDismiss={() => setToastDismissed(true)} />
+      )}
       <Animated.View
         entering={reducedMotion ? undefined : FadeInUp.duration(300)}
         style={{ alignItems: "center", gap: 10 }}
