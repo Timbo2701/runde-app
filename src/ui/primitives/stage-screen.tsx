@@ -69,6 +69,9 @@ export function StageScreen({ children, stageColor, pattern = "confetti" }: Stag
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      scrollEnabled={false}
+      bounces={false}
+      overScrollMode="never"
       style={{ flex: 1, backgroundColor: stageColor }}
       contentContainerStyle={{ minHeight: height, backgroundColor: stageColor }}
     >
