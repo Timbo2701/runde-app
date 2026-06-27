@@ -7,6 +7,7 @@ import { colors } from "@/design/tokens";
 type StageScreenProps = PropsWithChildren<{
   stageColor: string;
   pattern?: "confetti" | "rings" | "dots";
+  scrollEnabled?: boolean;
 }>;
 
 function Pattern({ type }: { type: NonNullable<StageScreenProps["pattern"]> }) {
@@ -61,7 +62,7 @@ function Pattern({ type }: { type: NonNullable<StageScreenProps["pattern"]> }) {
   );
 }
 
-export function StageScreen({ children, stageColor, pattern = "confetti" }: StageScreenProps) {
+export function StageScreen({ children, stageColor, pattern = "confetti", scrollEnabled = false }: StageScreenProps) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
 
@@ -69,7 +70,7 @@ export function StageScreen({ children, stageColor, pattern = "confetti" }: Stag
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      scrollEnabled={false}
+      scrollEnabled={scrollEnabled}
       bounces={false}
       overScrollMode="never"
       style={{ flex: 1, backgroundColor: stageColor }}

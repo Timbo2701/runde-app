@@ -4,7 +4,9 @@ import { Image, Share, Text, View } from "react-native";
 import { useProfile } from "@/lib/profile-context";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
+import { getModeById } from "@/data/game-modes";
 import { colors, fonts, radii } from "@/design/tokens";
+import type { GameModeType } from "@/lib/game-types";
 import { getInitials, normalizeRoomCode } from "@/lib/room";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -15,10 +17,11 @@ import { StageScreen } from "@/ui/primitives/stage-screen";
 const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
 
 export function LobbyScreen() {
-  const params = useLocalSearchParams<{ code?: string; name?: string }>();
+  const params = useLocalSearchParams<{ code?: string; name?: string; mode?: string }>();
   const code = normalizeRoomCode(params.code ?? "RUND24") || "RUND24";
   const { name: profileName, photo: profilePhoto } = useProfile();
   const myName = profileName || params.name || "Du";
+  const gameMode = getModeById(params.mode ?? "klassiker");
 
   const players = [
     { id: "you", name: myName, color: colors.stageBerry, photo: profilePhoto ?? null },
@@ -32,7 +35,7 @@ export function LobbyScreen() {
 
   const startRound = () => {
     if (process.env.EXPO_OS === "ios") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.push({ pathname: "/play", params: { code } });
+    router.push({ pathname: "/play", params: { code, mode: gameMode.id } });
   };
 
   return (
@@ -40,6 +43,28 @@ export function LobbyScreen() {
       <AppHeader title={`Raum ${code}`} actionLabel="Verlassen" onAction={() => router.replace("/")} />
 
       <Animated.View entering={reducedMotion ? undefined : FadeInUp.duration(260)} style={{ paddingTop: 20, gap: 26 }}>
+        {/* Mode badge */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, alignSelf: "center" }}>
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            backgroundColor: "rgba(255,255,255,0.12)",
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.2)",
+          }}>
+            <Text style={{ fontSize: 18 }}>{gameMode.emoji}</Text>
+            <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 14 }}>{gameMode.title}</Text>
+            <View style={{ width: 1, height: 14, backgroundColor: "rgba(255,255,255,0.3)" }} />
+            {gameMode.feelTags.slice(0, 2).map((tag) => (
+              <Text key={tag} style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12 }}>{tag}</Text>
+            ))}
+          </View>
+        </View>
+
         <SocialSpotlight
           accent={colors.stageCoral}
           label="Die Runde wird warm"

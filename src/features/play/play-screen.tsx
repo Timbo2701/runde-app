@@ -4,34 +4,27 @@ import { useProfile } from "@/lib/profile-context";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
+import { getQuestion } from "@/data/questions";
 import { colors, fonts, radii } from "@/design/tokens";
+import type { GameModeType } from "@/lib/game-types";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
 const BOT_NAME = "Mika";
-
 const TOTAL_ROUNDS = 5;
 const BOT_VOTE_DELAY_MS = 2400;
 
-const QUESTIONS: string[] = [
-  "Wer bringt die Gruppe am schnellsten zum Lachen?",
-  "Wer würde als Erstes in einem Horrorfilm sterben?",
-  "Wer hat das chaotischste Zimmer?",
-  "Wer ist am schlechtesten im Lügen?",
-  "Wer würde einen fremden Hund einfach mitnehmen?",
-];
-
 export function PlayScreen() {
-  const { code = "RUND24", round = "1" } = useLocalSearchParams<{ code?: string; round?: string }>();
+  const { code = "RUND24", round = "1", mode = "klassiker" } = useLocalSearchParams<{ code?: string; round?: string; mode?: string }>();
   const { name: profileName } = useProfile();
   const myName = profileName || "Du";
   const choices = [myName, BOT_NAME] as const;
   type Choice = (typeof choices)[number];
 
   const roundNumber = Math.min(Math.max(parseInt(round, 10) || 1, 1), TOTAL_ROUNDS);
-  const question = QUESTIONS[roundNumber - 1];
+  const question = getQuestion(mode as GameModeType, roundNumber - 1).prompt;
 
   const [choice, setChoice] = useState<Choice | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -55,6 +48,7 @@ export function PlayScreen() {
           params: {
             code,
             round: String(roundNumber),
+            mode,
             playerVote: choice ?? "",
             botVote: botChoice,
           },

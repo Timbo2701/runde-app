@@ -20,9 +20,10 @@ function countVotes(votes: string[]): Record<string, number> {
 }
 
 export function ResultsScreen() {
-  const { code = "RUND24", round = "1", playerVote, botVote } = useLocalSearchParams<{
+  const { code = "RUND24", round = "1", mode = "klassiker", playerVote, botVote } = useLocalSearchParams<{
     code?: string;
     round?: string;
+    mode?: string;
     playerVote?: string;
     botVote?: string;
   }>();
@@ -48,7 +49,7 @@ export function ResultsScreen() {
     } else {
       router.replace({
         pathname: "/play",
-        params: { code, round: String(roundNumber + 1) },
+        params: { code, round: String(roundNumber + 1), mode },
       });
     }
   };

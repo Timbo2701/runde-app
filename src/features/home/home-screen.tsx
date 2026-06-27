@@ -5,7 +5,7 @@ import { Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { colors, fonts } from "@/design/tokens";
-import { isRoomCodeReady, makeRoomCode, normalizeRoomCode } from "@/lib/room";
+import { isRoomCodeReady, normalizeRoomCode } from "@/lib/room";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
@@ -25,7 +25,7 @@ export function HomeScreen() {
   };
 
   const createRoom = () => {
-    router.push({ pathname: "/lobby", params: { code: makeRoomCode(), name: playerName } });
+    router.push("/mode-select");
   };
 
   return (
