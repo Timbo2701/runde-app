@@ -1,8 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef } from "react";
-import { Image, StyleSheet, Text, View, useWindowDimensions } from "react-native";
-import ConfettiCannon from "react-native-confetti-cannon";
+import { useEffect } from "react";
+import { Image, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -10,27 +9,18 @@ import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
+import { ConfettiSystem } from "@/ui/primitives/confetti-system";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
 const TOTAL_ROUNDS = 5;
 const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
-
-const CONFETTI_COLORS = [
-  colors.sun,
-  colors.stageBerry,
-  colors.stageGrape,
-  "#FFFFFF",
-  colors.stageCoral,
-  "#FFB347",
-];
 
 export function FinalScreen() {
   const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
   const { name: profileName, photo: profilePhoto } = useProfile();
   const myName = profileName || "Du";
   const reducedMotion = useReducedMotion();
-  const { width: screenWidth } = useWindowDimensions();
-  const confettiRef = useRef<ConfettiCannon>(null);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const scores = [
     { name: "Mika", points: 3, color: colors.stageCoral, avatar: MIKA_AVATAR },
@@ -40,15 +30,12 @@ export function FinalScreen() {
 
   useEffect(() => {
     if (reducedMotion) return;
-
-    const t = setTimeout(() => {
-      confettiRef.current?.start();
-      if (process.env.EXPO_OS === "ios") {
+    if (process.env.EXPO_OS === "ios") {
+      const t = setTimeout(() => {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    }, 350);
-
-    return () => clearTimeout(t);
+      }, 400);
+      return () => clearTimeout(t);
+    }
   }, [reducedMotion]);
 
   return (
@@ -126,7 +113,7 @@ export function FinalScreen() {
                       {isWinner && (
                         <Animated.Text
                           entering={reducedMotion ? undefined : ZoomIn.delay(700).springify().damping(6)}
-                          style={styles.crown}
+                          style={crownStyle}
                         >
                           👑
                         </Animated.Text>
@@ -218,32 +205,22 @@ export function FinalScreen() {
         </View>
       </StageScreen>
 
-      {/* Confetti overlay — rendered outside StageScreen so it covers full screen */}
-      {!reducedMotion && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <ConfettiCannon
-            ref={confettiRef}
-            count={180}
-            origin={{ x: screenWidth / 2, y: -20 }}
-            colors={CONFETTI_COLORS}
-            fallSpeed={3200}
-            explosionSpeed={380}
-            fadeOut
-            autoStart={false}
-          />
-        </View>
-      )}
+      {/* Confetti — Reanimated worklets, UI thread, 60fps */}
+      <ConfettiSystem
+        active={!reducedMotion}
+        screenWidth={screenWidth}
+        screenHeight={screenHeight}
+        count={70}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  crown: {
-    position: "absolute",
-    top: -20,
-    left: 10,
-    fontSize: 22,
-    transform: [{ rotate: "-12deg" }],
-    zIndex: 10,
-  },
-});
+const crownStyle = {
+  position: "absolute" as const,
+  top: -20,
+  left: 10,
+  fontSize: 22,
+  transform: [{ rotate: "-12deg" }],
+  zIndex: 10,
+};
