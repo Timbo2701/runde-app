@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m2
 
     environment:
-      node: 22.0.0
+      node: 22.13.0
       xcode: latest
       cocoapods: default
 
