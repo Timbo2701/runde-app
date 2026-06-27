@@ -97,7 +97,7 @@ export function ProfileScreen() {
 
   return (
     <StageScreen stageColor={colors.stageCoral} pattern="dots">
-      <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.back()} />
+      <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.canGoBack() ? router.back() : router.replace("/")} />
 
       {/* Tab-Switcher */}
       <Animated.View
