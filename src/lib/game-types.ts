@@ -50,6 +50,7 @@ export interface RoundQuestion {
   prompt: string;
   options?: string[];         // für multiple-choice
   correctAnswer?: string;     // für quiz/schätzen
+  bluffHint?: string;         // für bluff: Hinweis zum Thema
   category: string;
 }
 
