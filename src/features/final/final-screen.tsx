@@ -11,6 +11,8 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
+  withTiming,
+  Easing,
 } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -100,6 +102,55 @@ const crownCircleStyle = {
   elevation: 10,
 };
 
+function ProgressBar({
+  pct,
+  isWinner,
+  delay,
+  reducedMotion,
+}: {
+  pct: number;
+  isWinner: boolean;
+  delay: number;
+  reducedMotion: boolean;
+}) {
+  const width = useSharedValue(0);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      width.value = pct * 100;
+    } else {
+      width.value = withDelay(
+        delay,
+        withTiming(pct * 100, { duration: 650, easing: Easing.out(Easing.cubic) })
+      );
+    }
+  }, [pct]);
+
+  const barStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+
+  return (
+    <View
+      style={{
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: isWinner ? colors.surfaceSoft : "rgba(255,255,255,0.1)",
+        overflow: "hidden",
+      }}
+    >
+      <Animated.View
+        style={[
+          {
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: isWinner ? colors.stageGrape : colors.whiteSoft,
+          },
+          barStyle,
+        ]}
+      />
+    </View>
+  );
+}
+
 export function FinalScreen() {
   const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
   const { name: profileName, photo: profilePhoto } = useProfile();
@@ -112,6 +163,17 @@ export function FinalScreen() {
     { name: myName, points: 2, color: colors.stageBerry, avatar: profilePhoto ?? null },
   ];
   const winner = scores[0];
+
+  const { roundsPlayed, wins, setProfile } = useProfile();
+
+  useEffect(() => {
+    // Track stats: +1 round played, +1 win if local player won
+    const playerWon = winner.name === myName;
+    void setProfile({
+      roundsPlayed: roundsPlayed + 1,
+      wins: playerWon ? wins + 1 : wins,
+    });
+  }, []); // run once on mount
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -259,22 +321,12 @@ export function FinalScreen() {
                   </View>
 
                   {/* Animierter Fortschrittsbalken */}
-                  <View style={{
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: isWinner ? colors.surfaceSoft : "rgba(255,255,255,0.1)",
-                    overflow: "hidden",
-                  }}>
-                    <Animated.View
-                      entering={reducedMotion ? undefined : FadeIn.delay(600 + index * 120).duration(700)}
-                      style={{
-                        height: 8,
-                        width: `${pct * 100}%`,
-                        borderRadius: 4,
-                        backgroundColor: isWinner ? colors.stageGrape : colors.whiteSoft,
-                      }}
-                    />
-                  </View>
+                  <ProgressBar
+                    pct={pct}
+                    isWinner={isWinner}
+                    delay={600 + index * 120}
+                    reducedMotion={reducedMotion}
+                  />
                 </Animated.View>
               );
             })}

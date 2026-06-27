@@ -11,6 +11,93 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
+function NameInput({ name, setName }: { name: string; setName: (v: string) => void }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 13, letterSpacing: 0.4 }}>
+        Dein Name
+      </Text>
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder="Wie heißt du?"
+        placeholderTextColor="rgba(255,255,255,0.28)"
+        maxLength={32}
+        style={{
+          minHeight: 54,
+          backgroundColor: "rgba(255,255,255,0.10)",
+          borderRadius: radii.control,
+          borderCurve: "continuous",
+          borderWidth: 1.5,
+          borderColor: focused ? colors.sun : name ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)",
+          paddingHorizontal: 18,
+          paddingVertical: 14,
+          fontFamily: fonts.bodySemiBold,
+          fontSize: 17,
+          color: colors.white,
+        }}
+      />
+      <Text style={{ color: "rgba(255,255,255,0.38)", fontFamily: fonts.body, fontSize: 12 }}>
+        Leer lassen = zufälliger Name wird vergeben
+      </Text>
+    </View>
+  );
+}
+
+function EmailInput({ email, setEmail }: { email: string; setEmail: (v: string) => void }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 13, letterSpacing: 0.4 }}>
+        E-Mail verknüpfen{" "}
+        <Text style={{ color: "rgba(255,255,255,0.38)", fontFamily: fonts.body, fontSize: 12 }}>(optional)</Text>
+      </Text>
+      <TextInput
+        value={email}
+        onChangeText={setEmail}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder="deine@email.de"
+        placeholderTextColor="rgba(255,255,255,0.28)"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        maxLength={80}
+        style={{
+          minHeight: 54,
+          backgroundColor: "rgba(255,255,255,0.10)",
+          borderRadius: radii.control,
+          borderCurve: "continuous",
+          borderWidth: 1.5,
+          borderColor: focused ? colors.sun : email ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)",
+          paddingHorizontal: 18,
+          paddingVertical: 14,
+          fontFamily: fonts.bodySemiBold,
+          fontSize: 17,
+          color: colors.white,
+        }}
+      />
+      <View style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: "rgba(255,255,255,0.06)",
+        borderRadius: radii.control,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.10)",
+        padding: 12,
+      }}>
+        <Text style={{ fontSize: 14 }}>🔒</Text>
+        <Text style={{ color: "rgba(255,255,255,0.45)", fontFamily: fonts.body, fontSize: 12, flex: 1 }}>
+          Platzhalter — Konto-Sync kommt in einer späteren Version.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 const ADJECTIVES = ["Coole", "Wilde", "Lustige", "Schnelle", "Mutige"];
 const NOUNS = ["Banane", "Katze", "Rakete", "Kokosnuss", "Ente", "Pinguin"];
 
@@ -119,69 +206,10 @@ export function SetupScreen() {
           </View>
 
           {/* Name */}
-          <View style={{ gap: 8 }}>
-            <Text style={{ color: colors.white, fontFamily: fonts.bodySemiBold, fontSize: 14 }}>
-              Dein Name
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Wie heißt du?"
-              placeholderTextColor={colors.inkMuted}
-              maxLength={32}
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: radii.control,
-                paddingHorizontal: spacing.xl,
-                paddingVertical: 14,
-                fontFamily: fonts.body,
-                fontSize: 16,
-                color: colors.ink,
-              }}
-            />
-            <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12 }}>
-              Leer lassen = zufälliger Name wird vergeben
-            </Text>
-          </View>
+          <NameInput name={name} setName={setName} />
 
           {/* Email (Placeholder) */}
-          <View style={{ gap: 8 }}>
-            <Text style={{ color: colors.white, fontFamily: fonts.bodySemiBold, fontSize: 14 }}>
-              E-Mail verknüpfen{" "}
-              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 13 }}>(optional)</Text>
-            </Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="deine@email.de"
-              placeholderTextColor={colors.inkMuted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              maxLength={80}
-              style={{
-                backgroundColor: colors.surface,
-                borderRadius: radii.control,
-                paddingHorizontal: spacing.xl,
-                paddingVertical: 14,
-                fontFamily: fonts.body,
-                fontSize: 16,
-                color: colors.ink,
-              }}
-            />
-            <View style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              backgroundColor: "rgba(255,255,255,0.08)",
-              borderRadius: radii.control,
-              padding: 12,
-            }}>
-              <Text style={{ fontSize: 16 }}>🔒</Text>
-              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12, flex: 1 }}>
-                Dein Konto wird gespeichert – so behältst du deine Siege auch auf neuen Geräten.
-              </Text>
-            </View>
-          </View>
+          <EmailInput email={email} setEmail={setEmail} />
         </Animated.View>
 
         <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(300).duration(280)} style={{ gap: 12, paddingBottom: 8 }}>

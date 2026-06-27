@@ -29,7 +29,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded) return;
-    // DEV: always show onboarding
+    // DEV: always show onboarding first
     router.replace("/onboarding");
     setChecked(true);
   }, [fontsLoaded]);

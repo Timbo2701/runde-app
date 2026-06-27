@@ -52,22 +52,31 @@ export function KlassikerResult({ params, onNext, isLastRound, roundNumber, tota
         entering={reducedMotion ? undefined : FadeInUp.duration(300)}
         style={{ alignItems: "center", gap: 10 }}
       >
-        {!isTie && (
-          <Animated.Text
-            entering={reducedMotion ? undefined : ZoomIn.delay(200).duration(350)}
-            style={{ fontSize: 60, lineHeight: 68 }}
-          >
-            🎯
-          </Animated.Text>
-        )}
+          <Animated.View
+          entering={reducedMotion ? undefined : ZoomIn.delay(150).duration(380).springify().damping(10)}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: isTie ? "rgba(255,255,255,0.1)" : "rgba(255,216,77,0.2)",
+            borderWidth: 2,
+            borderColor: isTie ? "rgba(255,255,255,0.2)" : "rgba(255,216,77,0.5)",
+          }}
+        >
+          <Text style={{ fontSize: 36, lineHeight: 44 }}>{isTie ? "🤝" : "🎯"}</Text>
+        </Animated.View>
         <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.6 }}>
           ERGEBNIS · RUNDE {roundNumber}
         </Text>
-        <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 38, lineHeight: 42, textAlign: "center" }}>
-          {isTie ? "Unentschieden!" : `${winner} gewinnt!`}
+        <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 36, lineHeight: 40, textAlign: "center" }}>
+          {isTie ? "Gleichstand!" : `${winner} gewinnt!`}
         </Text>
-        <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 16, textAlign: "center" }}>
-          {isTie ? "Beide haben gleich viele Stimmen." : "Die Gruppe hat gesprochen. 🗣️"}
+        <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 15, textAlign: "center" }}>
+          {isTie
+            ? "Beide haben gleich viele Stimmen.\nJe +1 Punkt für beide."
+            : "Die Gruppe hat gesprochen. 🗣️"}
         </Text>
       </Animated.View>
 

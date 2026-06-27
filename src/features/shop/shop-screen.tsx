@@ -138,32 +138,38 @@ function FeaturedCard({ item }: { item: ShopItem }) {
       {/* Host Pass Feature-Liste */}
       <View style={{ gap: 6 }}>
         {[
-          "Premium-Modi hosten",
-          "Größere Rooms (bis 20 Spieler)",
-          "Mehr Runden pro Session",
-          "Exklusive Themes & Fragenpakete",
+          { text: "Premium-Modi & mehr Runden hosten", icon: "🎮" },
+          { text: "Größere Rooms — bis zu 20 Spieler", icon: "👥" },
+          { text: "Exklusive Themes & Fragenpakete", icon: "🌈" },
+          { text: "Früher Zugang zu neuen Modi", icon: "⚡" },
         ].map((feat) => (
-          <View key={feat} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <View
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 9,
-                backgroundColor: colors.sun,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: colors.ink, fontSize: 10, fontFamily: fonts.bodyBold }}>✓</Text>
-            </View>
-            <Text style={{ color: colors.white, fontFamily: fonts.bodyMedium, fontSize: 13 }}>
-              {feat}
+          <View key={feat.text} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text style={{ fontSize: 15, lineHeight: 18 }}>{feat.icon}</Text>
+            <Text style={{ color: colors.white, fontFamily: fonts.bodyMedium, fontSize: 13, flex: 1 }}>
+              {feat.text}
             </Text>
           </View>
         ))}
-        <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 11, marginTop: 2 }}>
-          Andere spielen kostenlos mit, wenn du Host bist.
-        </Text>
+        {/* Fairness-Hinweis */}
+        <View
+          style={{
+            marginTop: 6,
+            padding: 10,
+            borderRadius: radii.control,
+            backgroundColor: "rgba(255,216,77,0.08)",
+            borderWidth: 1,
+            borderColor: "rgba(255,216,77,0.25)",
+            flexDirection: "row",
+            gap: 8,
+            alignItems: "flex-start",
+          }}
+        >
+          <Text style={{ fontSize: 13 }}>💡</Text>
+          <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12, flex: 1, lineHeight: 17 }}>
+            <Text style={{ fontFamily: fonts.bodySemiBold, color: colors.sun }}>Eine Person zahlt, alle profitieren.</Text>
+            {" "}Deine Freunde spielen kostenlos mit — kein Spielvorteil, kein Pay-to-Win.
+          </Text>
+        </View>
       </View>
 
       {/* CTA */}
@@ -203,21 +209,35 @@ function FeaturedCard({ item }: { item: ShopItem }) {
 
 function ShopItemCard({ item, index, reducedMotion }: { item: ShopItem; index: number; reducedMotion: boolean }) {
   const isComingSoon = item.comingSoon;
+  const isPopular = item.badge === "BELIEBT";
+  const isNew = item.badge === "NEU";
+
+  const borderColor = isPopular
+    ? "rgba(197,42,135,0.5)"
+    : isNew
+    ? "rgba(111,43,211,0.5)"
+    : "rgba(255,255,255,0.10)";
+
+  const bgColor = isPopular
+    ? "rgba(197,42,135,0.08)"
+    : isNew
+    ? "rgba(111,43,211,0.08)"
+    : "rgba(0,0,0,0.20)";
 
   return (
     <Animated.View
-      entering={reducedMotion ? undefined : FadeInDown.delay(index * 50).duration(240)}
+      entering={reducedMotion ? undefined : FadeInDown.delay(index * 55).duration(240)}
     >
       <View
         style={{
           borderRadius: radii.card,
           borderCurve: "continuous",
-          backgroundColor: "rgba(0,0,0,0.22)",
-          borderWidth: 1,
-          borderColor: "rgba(255,255,255,0.1)",
+          backgroundColor: bgColor,
+          borderWidth: isPopular || isNew ? 1.5 : 1,
+          borderColor,
           padding: spacing.xl,
           gap: 12,
-          opacity: isComingSoon ? 0.65 : 1,
+          opacity: isComingSoon ? 0.62 : 1,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
