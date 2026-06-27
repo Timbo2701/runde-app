@@ -107,6 +107,7 @@ export function ProfileScreen() {
           backgroundColor: "rgba(0,0,0,0.18)",
           borderRadius: radii.control,
           padding: 3,
+          marginTop: 16,
           marginBottom: 24,
         }}
       >
