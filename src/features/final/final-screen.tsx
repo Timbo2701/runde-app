@@ -1,5 +1,8 @@
+import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { Image, Text, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { Image, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import ConfettiCannon from "react-native-confetti-cannon";
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -12,12 +15,22 @@ import { StageScreen } from "@/ui/primitives/stage-screen";
 const TOTAL_ROUNDS = 5;
 const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
 
+const CONFETTI_COLORS = [
+  colors.sun,
+  colors.stageBerry,
+  colors.stageGrape,
+  "#FFFFFF",
+  colors.stageCoral,
+  "#FFB347",
+];
+
 export function FinalScreen() {
   const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
   const { name: profileName, photo: profilePhoto } = useProfile();
   const myName = profileName || "Du";
   const reducedMotion = useReducedMotion();
-  const maxPoints = TOTAL_ROUNDS;
+  const { width: screenWidth } = useWindowDimensions();
+  const confettiRef = useRef<ConfettiCannon>(null);
 
   const scores = [
     { name: "Mika", points: 3, color: colors.stageCoral, avatar: MIKA_AVATAR },
@@ -25,171 +38,212 @@ export function FinalScreen() {
   ];
   const winner = scores[0];
 
+  useEffect(() => {
+    if (reducedMotion) return;
+
+    const t = setTimeout(() => {
+      confettiRef.current?.start();
+      if (process.env.EXPO_OS === "ios") {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    }, 350);
+
+    return () => clearTimeout(t);
+  }, [reducedMotion]);
+
   return (
-    <StageScreen stageColor={colors.stageGrape} pattern="rings">
-      <AppHeader title={`Raum ${code}`} actionLabel="Verlassen" onAction={() => router.replace("/")} />
+    <View style={{ flex: 1 }}>
+      <StageScreen stageColor={colors.stageGrape} pattern="rings">
+        <AppHeader title={`Raum ${code}`} actionLabel="Verlassen" onAction={() => router.replace("/")} />
 
-      <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 28 }}>
+        <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 28 }}>
 
-        {/* Trophy + Confetti burst */}
-        <Animated.View
-          entering={reducedMotion ? undefined : FadeInUp.duration(350)}
-          style={{ alignItems: "center", gap: 10 }}
-        >
-          {/* Confetti row */}
-          <Animated.Text
-            entering={reducedMotion ? undefined : FadeIn.delay(400).duration(400)}
-            style={{ fontSize: 28, letterSpacing: 8, opacity: 0.85 }}
+          {/* Hero */}
+          <Animated.View
+            entering={reducedMotion ? undefined : FadeInUp.duration(350)}
+            style={{ alignItems: "center", gap: 10 }}
           >
-            🎊 🎉 🎊
-          </Animated.Text>
+            <Animated.Text
+              entering={reducedMotion ? undefined : ZoomIn.delay(200).duration(400).springify().damping(10)}
+              style={{ fontSize: 80, lineHeight: 88 }}
+            >
+              🏆
+            </Animated.Text>
 
-          {/* Trophy */}
-          <Animated.Text
-            entering={reducedMotion ? undefined : ZoomIn.delay(150).duration(400)}
-            style={{ fontSize: 80, lineHeight: 88 }}
-          >
-            🏆
-          </Animated.Text>
+            <View style={{ alignItems: "center", gap: 6 }}>
+              <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.6 }}>
+                GESAMTERGEBNIS
+              </Text>
+              <Text style={{
+                color: colors.white,
+                fontFamily: fonts.displayExtraBold,
+                fontSize: 38,
+                lineHeight: 42,
+                textAlign: "center",
+              }}>
+                {winner.name}{"\n"}gewinnt!
+              </Text>
+              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 15, textAlign: "center" }}>
+                {TOTAL_ROUNDS} Fragen — die Gruppe hat entschieden.
+              </Text>
+            </View>
+          </Animated.View>
 
-          <View style={{ alignItems: "center", gap: 6 }}>
-            <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.6 }}>
-              GESAMTERGEBNIS
-            </Text>
-            <Text style={{
-              color: colors.white,
-              fontFamily: fonts.displayExtraBold,
-              fontSize: 38,
-              lineHeight: 42,
-              textAlign: "center",
-            }}>
-              {winner.name}{"\n"}gewinnt! 🎯
-            </Text>
-            <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 15, textAlign: "center" }}>
-              {TOTAL_ROUNDS} Fragen — die Gruppe hat entschieden.
-            </Text>
-          </View>
-        </Animated.View>
+          {/* Rangliste */}
+          <View style={{ gap: 10 }}>
+            {scores.map((player, index) => {
+              const isWinner = index === 0;
+              const pct = player.points / TOTAL_ROUNDS;
+              const rank = index + 1;
 
-        {/* Rangliste */}
-        <View style={{ gap: 10 }}>
-          {scores.map((player, index) => {
-            const isWinner = index === 0;
-            const pct = player.points / maxPoints;
-            const rank = index + 1;
-
-            return (
-              <Animated.View
-                key={player.name}
-                entering={reducedMotion ? undefined : FadeInDown.delay(250 + index * 130).duration(280)}
-                style={{
-                  borderRadius: radii.card,
-                  borderCurve: "continuous",
-                  backgroundColor: isWinner ? colors.surface : "rgba(255,255,255,0.1)",
-                  padding: spacing.xl,
-                  gap: 14,
-                  // Winner gets a subtle glow border
-                  borderWidth: isWinner ? 2 : 0,
-                  borderColor: isWinner ? colors.sun : "transparent",
-                }}
-              >
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  {/* Rang */}
-                  <Text style={{
-                    color: isWinner ? colors.stageGrapeDeep : colors.whiteSoft,
-                    fontFamily: fonts.displayExtraBold,
-                    fontSize: 22,
-                    width: 30,
-                  }}>
-                    {rank}.
-                  </Text>
-
-                  {/* Avatar */}
-                  <View style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 24,
-                    overflow: "hidden",
-                    backgroundColor: player.color,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderWidth: isWinner ? 2.5 : 0,
-                    borderColor: colors.sun,
-                  }}>
-                    {player.avatar
-                      ? <Image source={{ uri: player.avatar }} style={{ width: 48, height: 48 }} />
-                      : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 17 }}>{player.name[0]}</Text>
-                    }
-                  </View>
-
-                  {/* Name */}
-                  <Text style={{
-                    flex: 1,
-                    color: isWinner ? colors.ink : colors.white,
-                    fontFamily: fonts.bodyBold,
-                    fontSize: 19,
-                  }}>
-                    {player.name}
-                    {isWinner ? " 👑" : ""}
-                  </Text>
-
-                  {/* Score */}
-                  <View style={{ alignItems: "flex-end", gap: 1 }}>
+              return (
+                <Animated.View
+                  key={player.name}
+                  entering={reducedMotion ? undefined : FadeInDown.delay(250 + index * 130).duration(280)}
+                  style={{
+                    borderRadius: radii.card,
+                    borderCurve: "continuous",
+                    backgroundColor: isWinner ? colors.surface : "rgba(255,255,255,0.1)",
+                    padding: spacing.xl,
+                    gap: 14,
+                    borderWidth: isWinner ? 2 : 0,
+                    borderColor: isWinner ? colors.sun : "transparent",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    {/* Rang */}
                     <Text style={{
                       color: isWinner ? colors.stageGrapeDeep : colors.whiteSoft,
-                      fontFamily: fonts.mono,
+                      fontFamily: fonts.displayExtraBold,
                       fontSize: 22,
-                      fontWeight: "700",
+                      width: 30,
                     }}>
-                      {player.points}/{TOTAL_ROUNDS}
+                      {rank}.
                     </Text>
+
+                    {/* Avatar with floating crown */}
+                    <View style={{ position: "relative" }}>
+                      {isWinner && (
+                        <Animated.Text
+                          entering={reducedMotion ? undefined : ZoomIn.delay(700).springify().damping(6)}
+                          style={styles.crown}
+                        >
+                          👑
+                        </Animated.Text>
+                      )}
+                      <View style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        overflow: "hidden",
+                        backgroundColor: player.color,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderWidth: isWinner ? 2.5 : 0,
+                        borderColor: colors.sun,
+                      }}>
+                        {player.avatar
+                          ? <Image source={{ uri: player.avatar }} style={{ width: 48, height: 48 }} />
+                          : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 17 }}>{player.name[0]}</Text>
+                        }
+                      </View>
+                    </View>
+
+                    {/* Name */}
                     <Text style={{
-                      color: isWinner ? colors.inkMuted : colors.whiteSoft,
-                      fontFamily: fonts.body,
-                      fontSize: 11,
+                      flex: 1,
+                      color: isWinner ? colors.ink : colors.white,
+                      fontFamily: fonts.bodyBold,
+                      fontSize: 19,
                     }}>
-                      Siege
+                      {player.name}
                     </Text>
+
+                    {/* Score */}
+                    <View style={{ alignItems: "flex-end", gap: 1 }}>
+                      <Text style={{
+                        color: isWinner ? colors.stageGrapeDeep : colors.whiteSoft,
+                        fontFamily: fonts.mono,
+                        fontSize: 22,
+                        fontWeight: "700",
+                      }}>
+                        {player.points}/{TOTAL_ROUNDS}
+                      </Text>
+                      <Text style={{
+                        color: isWinner ? colors.inkMuted : colors.whiteSoft,
+                        fontFamily: fonts.body,
+                        fontSize: 11,
+                      }}>
+                        Siege
+                      </Text>
+                    </View>
                   </View>
-                </View>
 
-                {/* Fortschrittsbalken */}
-                <View style={{
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: isWinner ? colors.surfaceSoft : "rgba(255,255,255,0.1)",
-                  overflow: "hidden",
-                }}>
-                  <Animated.View
-                    entering={reducedMotion ? undefined : FadeIn.delay(600 + index * 120).duration(700)}
-                    style={{
-                      height: 8,
-                      width: `${pct * 100}%`,
-                      borderRadius: 4,
-                      backgroundColor: isWinner ? colors.stageGrape : colors.whiteSoft,
-                    }}
-                  />
-                </View>
-              </Animated.View>
-            );
-          })}
+                  {/* Progress bar */}
+                  <View style={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: isWinner ? colors.surfaceSoft : "rgba(255,255,255,0.1)",
+                    overflow: "hidden",
+                  }}>
+                    <Animated.View
+                      entering={reducedMotion ? undefined : FadeIn.delay(600 + index * 120).duration(700)}
+                      style={{
+                        height: 8,
+                        width: `${pct * 100}%`,
+                        borderRadius: 4,
+                        backgroundColor: isWinner ? colors.stageGrape : colors.whiteSoft,
+                      }}
+                    />
+                  </View>
+                </Animated.View>
+              );
+            })}
+          </View>
+
+          {/* Buttons */}
+          <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(800).duration(300)} style={{ gap: 12 }}>
+            <BrandButton
+              label="Nochmal spielen"
+              onPress={() => router.replace({ pathname: "/lobby", params: { code } })}
+              tone="sun"
+            />
+            <BrandButton
+              label="Zur Startseite"
+              onPress={() => router.replace("/")}
+              tone="outline"
+            />
+          </Animated.View>
+
         </View>
+      </StageScreen>
 
-        {/* Buttons */}
-        <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(800).duration(300)} style={{ gap: 12 }}>
-          <BrandButton
-            label="Nochmal spielen 🔄"
-            onPress={() => router.replace({ pathname: "/lobby", params: { code } })}
-            tone="sun"
+      {/* Confetti overlay — rendered outside StageScreen so it covers full screen */}
+      {!reducedMotion && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <ConfettiCannon
+            ref={confettiRef}
+            count={180}
+            origin={{ x: screenWidth / 2, y: -20 }}
+            colors={CONFETTI_COLORS}
+            fallSpeed={3200}
+            explosionSpeed={380}
+            fadeOut
+            autoStart={false}
           />
-          <BrandButton
-            label="Zur Startseite"
-            onPress={() => router.replace("/")}
-            tone="outline"
-          />
-        </Animated.View>
-
-      </View>
-    </StageScreen>
+        </View>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  crown: {
+    position: "absolute",
+    top: -20,
+    left: 10,
+    fontSize: 22,
+    transform: [{ rotate: "-12deg" }],
+    zIndex: 10,
+  },
+});
