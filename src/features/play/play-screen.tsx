@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
@@ -10,12 +10,39 @@ import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
 const choices = ["Timo", "Mika"] as const;
+type Choice = (typeof choices)[number];
+
+const BOT_VOTE_DELAY_MS = 2400;
 
 export function PlayScreen() {
   const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
-  const [choice, setChoice] = useState<(typeof choices)[number] | null>(null);
+  const [choice, setChoice] = useState<Choice | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [botVoted, setBotVoted] = useState(false);
   const reducedMotion = useReducedMotion();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (submitted && !botVoted) {
+      // Bot wählt zufällig nach kurzem Delay
+      timerRef.current = setTimeout(() => {
+        const botChoice = choices[Math.floor(Math.random() * choices.length)];
+        setBotVoted(true);
+        // Weiterleitung zu Ergebnissen mit Stimmen
+        router.replace({
+          pathname: "/results",
+          params: {
+            code,
+            playerVote: choice ?? "",
+            botVote: botChoice,
+          },
+        });
+      }, BOT_VOTE_DELAY_MS);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [submitted, botVoted, choice, code]);
 
   return (
     <StageScreen stageColor={colors.stageCoral} pattern="dots">
@@ -42,11 +69,9 @@ export function PlayScreen() {
               <Pressable
                 key={person}
                 accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-                onPress={() => {
-                  setChoice(person);
-                  setSubmitted(false);
-                }}
+                accessibilityState={{ checked: selected, disabled: submitted }}
+                disabled={submitted}
+                onPress={() => setChoice(person)}
                 style={({ pressed }) => ({
                   minHeight: 72,
                   flexDirection: "row",
@@ -58,7 +83,7 @@ export function PlayScreen() {
                   borderWidth: 2,
                   borderColor: selected ? colors.sun : colors.borderOnColor,
                   backgroundColor: selected ? colors.surface : "rgba(255,255,255,0.1)",
-                  opacity: pressed ? 0.84 : 1,
+                  opacity: submitted ? (selected ? 1 : 0.5) : pressed ? 0.84 : 1,
                 })}
               >
                 <View
@@ -82,7 +107,12 @@ export function PlayScreen() {
           })}
         </View>
 
-        <BrandButton disabled={!choice} label={submitted ? "Stimme ist drin" : "Stimme abgeben"} onPress={() => setSubmitted(true)} tone="sun" />
+        <BrandButton
+          disabled={!choice || submitted}
+          label={submitted ? "Warte auf Mika…" : "Stimme abgeben"}
+          onPress={() => setSubmitted(true)}
+          tone="sun"
+        />
 
         {submitted ? (
           <Animated.View
@@ -99,4 +129,3 @@ export function PlayScreen() {
     </StageScreen>
   );
 }
-

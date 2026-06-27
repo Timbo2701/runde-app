@@ -25,6 +25,7 @@ export function SocialSpotlight({ accent = colors.sun, label, sublabel, size = 1
             transform: [{ translateX: 10 }, { translateY: -5 }],
           }}
         />
+        <View style={{ transform: [{ translateX: 10 }, { translateY: -5 }], alignItems: "center", justifyContent: "center" }}>
         {symbol ?? (
           <View
             style={{
@@ -42,6 +43,7 @@ export function SocialSpotlight({ accent = colors.sun, label, sublabel, size = 1
             <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 42 }}>R!</Text>
           </View>
         )}
+        </View>
       </View>
       <View style={{ alignItems: "center", gap: 3 }}>
         <Text selectable style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 30, textAlign: "center", lineHeight: 34 }}>
