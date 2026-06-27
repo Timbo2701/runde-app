@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Runde",
+    "slug": "runde",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "runde",
+    "ios": {
+      "bundleIdentifier": "com.runde.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "com.runde.app",
+      "versionCode": 1
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
