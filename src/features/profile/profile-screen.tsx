@@ -21,6 +21,43 @@ type Settings = {
   bewegungseffekte: boolean;
 };
 
+function CameraIcon() {
+  return (
+    <View style={{ width: 16, height: 13, alignItems: "center", justifyContent: "center" }}>
+      {/* Kamera-Bump oben */}
+      <View style={{
+        position: "absolute",
+        top: 0,
+        width: 6,
+        height: 3,
+        borderRadius: 1,
+        backgroundColor: colors.white,
+      }} />
+      {/* Kamera-Körper */}
+      <View style={{
+        position: "absolute",
+        bottom: 0,
+        width: 16,
+        height: 11,
+        borderRadius: 2.5,
+        backgroundColor: colors.white,
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        {/* Linse */}
+        <View style={{
+          width: 5,
+          height: 5,
+          borderRadius: 3,
+          backgroundColor: colors.ink,
+          borderWidth: 1.5,
+          borderColor: colors.white,
+        }} />
+      </View>
+    </View>
+  );
+}
+
 const SETTINGS_ROWS: { key: keyof Settings; label: string; sublabel: string }[] = [
   { key: "musik", label: "Musik", sublabel: "Hintergrundmusik während dem Spiel" },
   { key: "soundeffekte", label: "Soundeffekte", sublabel: "Töne bei Aktionen und Ergebnissen" },
@@ -137,7 +174,7 @@ export function ProfileScreen() {
                 borderWidth: 2,
                 borderColor: colors.surface,
               }}>
-                <Text style={{ fontSize: 15 }}>📷</Text>
+                <CameraIcon />
               </View>
             </Pressable>
 
