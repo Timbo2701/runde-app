@@ -17,8 +17,15 @@ const tones = {
   surface: { background: colors.surface, border: colors.surface, text: colors.ink },
 } as const;
 
+const disabledTones = {
+  sun: { background: "rgba(255,216,77,0.22)", border: "rgba(255,216,77,0.22)", text: "rgba(255,255,255,0.38)" },
+  ink: { background: "rgba(33,24,43,0.28)", border: "rgba(33,24,43,0.28)", text: "rgba(255,255,255,0.28)" },
+  outline: { background: "transparent", border: "rgba(255,255,255,0.18)", text: "rgba(255,255,255,0.28)" },
+  surface: { background: "rgba(255,249,245,0.22)", border: "rgba(255,249,245,0.22)", text: "rgba(33,24,43,0.38)" },
+} as const;
+
 export function BrandButton({ disabled = false, label, onPress, tone = "sun" }: BrandButtonProps) {
-  const palette = tones[tone];
+  const palette = disabled ? disabledTones[tone] : tones[tone];
 
   const handlePress = () => {
     if (disabled) return;
@@ -39,17 +46,23 @@ export function BrandButton({ disabled = false, label, onPress, tone = "sun" }: 
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: 22,
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: palette.border,
         borderRadius: radii.control,
         borderCurve: "continuous",
         backgroundColor: palette.background,
-        opacity: disabled ? 0.48 : pressed ? 0.84 : 1,
+        opacity: pressed && !disabled ? 0.84 : 1,
         transform: [{ scale: pressed && !disabled ? 0.985 : 1 }],
       })}
     >
-      <Text style={{ color: palette.text, fontFamily: fonts.bodyBold, fontSize: 17 }}>{label}</Text>
+      <Text style={{
+        color: palette.text,
+        fontFamily: fonts.bodyBold,
+        fontSize: 17,
+        letterSpacing: disabled ? 0.2 : 0,
+      }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
-

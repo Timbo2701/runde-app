@@ -13,31 +13,31 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SLIDES = [
   {
     emoji: "🎉",
-    title: "Willkommen bei Runde!",
-    body: "Das Partyspiel für deine Freundesrunde. Stimmt ab, lacht zusammen – und entscheidet, wer wirklich wer ist.",
+    title: "Bereit für den peinlichsten Abend des Jahres?",
+    body: "Runde stellt Fragen, die eure Freundschaft auf die Probe stellen – und ihr liebt es trotzdem.",
     color: colors.stageBerry,
     pattern: "confetti" as const,
   },
   {
-    emoji: "📝",
-    title: "Wie funktioniert's?",
-    body: "Erstelle einen Raum oder tritt mit einem Code bei. Dann beantwortet ihr zusammen lustige Fragen über euch.",
+    emoji: "🎯",
+    title: "Frage. Wählen. Eingestehen.",
+    body: "Ihr bekommt eine Frage über eure Gruppe. Jeder wählt still eine Person. Die Gruppe entscheidet – keine Ausreden.",
     color: colors.stageCoral,
     pattern: "dots" as const,
   },
   {
     emoji: "🏆",
-    title: "Punkte sammeln",
-    body: "Wer am häufigsten von der Gruppe gewählt wird, sammelt Siege. Nach 5 Runden sieht ihr wer wirklich gewonnen hat.",
+    title: "Siege zählen. Ausreden auch.",
+    body: "Wer am öftesten gewählt wird, sammelt Punkte. Nach 5 Runden steht fest, wer wirklich wer ist.",
     color: colors.stageGrape,
     pattern: "rings" as const,
   },
   {
-    emoji: "👥",
-    title: "Gemeinsam mehr Spaß",
-    body: "Je mehr Leute mitspielen, desto witziger wird's. Teile einfach den Raumcode mit deinen Freunden – los geht's!",
-    color: colors.stageGrape,
-    pattern: "dots" as const,
+    emoji: "🔥",
+    title: "Mehr Leute = mehr Drama",
+    body: "Teile den Raumcode und los – kein Download, kein Anmelden für deine Freunde. Einfach rein und mitspielen.",
+    color: colors.stageBerry,
+    pattern: "confetti" as const,
   },
 ];
 
@@ -62,7 +62,6 @@ export function OnboardingScreen() {
   return (
     <StageScreen stageColor={slide.color} pattern={slide.pattern}>
       <View style={{ flex: 1, gap: 0 }}>
-        {/* Slides */}
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -85,25 +84,25 @@ export function OnboardingScreen() {
                 paddingHorizontal: spacing.xl,
                 justifyContent: "center",
                 alignItems: "center",
-                gap: 24,
+                gap: 28,
               }}
             >
               <Animated.Text
                 entering={reducedMotion ? undefined : FadeIn.duration(300)}
-                style={{ fontSize: 80, lineHeight: 90 }}
+                style={{ fontSize: 88, lineHeight: 100 }}
               >
                 {s.emoji}
               </Animated.Text>
               <Animated.View
                 entering={reducedMotion ? undefined : FadeInDown.delay(100).duration(300)}
-                style={{ alignItems: "center", gap: 14 }}
+                style={{ alignItems: "center", gap: 16 }}
               >
                 <Text
                   style={{
                     color: colors.white,
                     fontFamily: fonts.displayExtraBold,
-                    fontSize: 32,
-                    lineHeight: 36,
+                    fontSize: 30,
+                    lineHeight: 34,
                     textAlign: "center",
                   }}
                 >
@@ -114,9 +113,9 @@ export function OnboardingScreen() {
                     color: colors.whiteSoft,
                     fontFamily: fonts.body,
                     fontSize: 17,
-                    lineHeight: 26,
+                    lineHeight: 27,
                     textAlign: "center",
-                    maxWidth: 320,
+                    maxWidth: 310,
                   }}
                 >
                   {s.body}
@@ -126,10 +125,9 @@ export function OnboardingScreen() {
           ))}
         </ScrollView>
 
-        {/* Dots + Button */}
-        <View style={{ gap: 24, paddingBottom: 16 }}>
-          {/* Dots */}
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 8 }}>
+        <View style={{ gap: 20, paddingBottom: 8 }}>
+          {/* Step indicator */}
+          <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6 }}>
             {SLIDES.map((_, i) => (
               <Pressable
                 key={i}
@@ -138,7 +136,7 @@ export function OnboardingScreen() {
                   setActiveIndex(i);
                 }}
                 style={{
-                  width: i === activeIndex ? 24 : 8,
+                  width: i === activeIndex ? 28 : 8,
                   height: 8,
                   borderRadius: 4,
                   backgroundColor: i === activeIndex ? colors.white : colors.whiteFaint,
@@ -148,7 +146,7 @@ export function OnboardingScreen() {
           </View>
 
           <BrandButton
-            label={isLast ? "Weiter →" : "Nächste →"}
+            label={isLast ? "Konto erstellen →" : "Weiter →"}
             onPress={goNext}
             tone="sun"
           />

@@ -1,9 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Image, Text, View } from "react-native";
-import { useProfile } from "@/lib/profile-context";
-import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
@@ -53,66 +53,143 @@ export function ResultsScreen() {
     }
   };
 
+  const avatarFor = (person: string) =>
+    person === BOT_NAME ? MIKA_AVATAR : (profilePhoto ?? null);
+  const colorFor = (person: string) =>
+    person === BOT_NAME ? colors.stageCoral : colors.stageBerry;
+
   return (
     <StageScreen stageColor={colors.stageGrape} pattern="rings">
       <AppHeader
-        title={`Raum ${code}`}
+        title={`Frage ${roundNumber} von ${TOTAL_ROUNDS}`}
         actionLabel="Verlassen"
         onAction={() => router.replace("/")}
       />
 
-      <View style={{ flex: 1, justifyContent: "center", paddingVertical: 24, gap: 32 }}>
-        <Animated.View entering={reducedMotion ? undefined : FadeInUp.duration(300)} style={{ alignItems: "center", gap: 8 }}>
-          <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 13, letterSpacing: 1 }}>
-            ERGEBNIS · FRAGE {roundNumber}
+      <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 28 }}>
+
+        {/* Winner reveal */}
+        <Animated.View
+          entering={reducedMotion ? undefined : FadeInUp.duration(300)}
+          style={{ alignItems: "center", gap: 10 }}
+        >
+          {!isTie && (
+            <Animated.Text
+              entering={reducedMotion ? undefined : ZoomIn.delay(200).duration(350)}
+              style={{ fontSize: 60, lineHeight: 68 }}
+            >
+              🎯
+            </Animated.Text>
+          )}
+          <Text style={{
+            color: colors.sun,
+            fontFamily: fonts.bodyBold,
+            fontSize: 12,
+            letterSpacing: 1.6,
+          }}>
+            ERGEBNIS · RUNDE {roundNumber}
           </Text>
-          <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 36, lineHeight: 40, textAlign: "center" }}>
+          <Text style={{
+            color: colors.white,
+            fontFamily: fonts.displayExtraBold,
+            fontSize: 38,
+            lineHeight: 42,
+            textAlign: "center",
+          }}>
             {isTie ? "Unentschieden!" : `${winner} gewinnt!`}
           </Text>
-          <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 16, textAlign: "center" }}>
-            {isTie ? "Beide haben gleich viele Stimmen." : "Die Gruppe hat gesprochen."}
+          <Text style={{
+            color: colors.whiteSoft,
+            fontFamily: fonts.body,
+            fontSize: 16,
+            textAlign: "center",
+          }}>
+            {isTie ? "Beide haben gleich viele Stimmen." : "Die Gruppe hat gesprochen. 🗣️"}
           </Text>
         </Animated.View>
 
-        <View style={{ gap: 12 }}>
+        {/* Vote cards */}
+        <View style={{ gap: 10 }}>
           {sorted.map((person, index) => {
             const voteCount = tally[person] ?? 0;
             const isWinner = !isTie && index === 0;
             const pct = votes.length > 0 ? voteCount / votes.length : 0;
-            const avatarUri = person === BOT_NAME ? MIKA_AVATAR : (profilePhoto ?? null);
-            const avatarColor = person === BOT_NAME ? colors.stageCoral : colors.stageBerry;
+            const avatarUri = avatarFor(person);
+            const avatarColor = colorFor(person);
 
             return (
               <Animated.View
                 key={person}
-                entering={reducedMotion ? undefined : FadeInDown.delay(index * 100).duration(260)}
+                entering={reducedMotion ? undefined : FadeInDown.delay(index * 110).duration(260)}
                 style={{
                   borderRadius: radii.card,
                   borderCurve: "continuous",
                   backgroundColor: isWinner ? colors.surface : "rgba(255,255,255,0.1)",
                   padding: spacing.xl,
-                  gap: 10,
+                  gap: 12,
+                  borderWidth: isWinner ? 2 : 0,
+                  borderColor: isWinner ? colors.sun : "transparent",
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  {isWinner && <Text style={{ fontSize: 22 }}>🏆</Text>}
-                  <View style={{ width: 36, height: 36, borderRadius: 18, overflow: "hidden", backgroundColor: avatarColor, alignItems: "center", justifyContent: "center" }}>
+                  {/* Avatar */}
+                  <View style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    overflow: "hidden",
+                    backgroundColor: avatarColor,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: isWinner ? 2 : 0,
+                    borderColor: colors.sun,
+                  }}>
                     {avatarUri
-                      ? <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36 }} />
-                      : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 13 }}>{person[0]}</Text>
+                      ? <Image source={{ uri: avatarUri }} style={{ width: 44, height: 44 }} />
+                      : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>{person[0]}</Text>
                     }
                   </View>
-                  <Text style={{ flex: 1, color: isWinner ? colors.ink : colors.white, fontFamily: fonts.bodyBold, fontSize: 20 }}>
-                    {person}
+
+                  <Text style={{
+                    flex: 1,
+                    color: isWinner ? colors.ink : colors.white,
+                    fontFamily: fonts.bodyBold,
+                    fontSize: 20,
+                  }}>
+                    {person}{isWinner ? " 👑" : ""}
                   </Text>
-                  <Text style={{ color: isWinner ? colors.stageGrapeDeep : colors.whiteSoft, fontFamily: fonts.mono, fontSize: 16 }}>
-                    {voteCount} {voteCount === 1 ? "Stimme" : "Stimmen"}
-                  </Text>
+
+                  <View style={{
+                    backgroundColor: isWinner ? colors.stageGrape : "rgba(255,255,255,0.12)",
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
+                    borderRadius: radii.round,
+                  }}>
+                    <Text style={{
+                      color: isWinner ? colors.white : colors.whiteSoft,
+                      fontFamily: fonts.mono,
+                      fontSize: 14,
+                    }}>
+                      {voteCount} {voteCount === 1 ? "Stimme" : "Stimmen"}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ height: 6, borderRadius: 3, backgroundColor: isWinner ? colors.surfaceSoft : colors.whiteFaint, overflow: "hidden" }}>
+
+                {/* Progress bar */}
+                <View style={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: isWinner ? colors.surfaceSoft : "rgba(255,255,255,0.1)",
+                  overflow: "hidden",
+                }}>
                   <Animated.View
-                    entering={reducedMotion ? undefined : FadeIn.delay(300 + index * 100).duration(400)}
-                    style={{ height: 6, width: `${pct * 100}%`, borderRadius: 3, backgroundColor: isWinner ? colors.stageGrapeDeep : colors.borderOnColor }}
+                    entering={reducedMotion ? undefined : FadeIn.delay(350 + index * 100).duration(500)}
+                    style={{
+                      height: 8,
+                      width: `${pct * 100}%`,
+                      borderRadius: 4,
+                      backgroundColor: isWinner ? colors.stageGrape : colors.whiteSoft,
+                    }}
                   />
                 </View>
               </Animated.View>
@@ -120,13 +197,17 @@ export function ResultsScreen() {
           })}
         </View>
 
-        <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(500).duration(300)} style={{ gap: 12 }}>
+        <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(550).duration(300)} style={{ gap: 12 }}>
           <BrandButton
-            label={isLastRound ? "Gesamtergebnis" : `Frage ${roundNumber + 1} von ${TOTAL_ROUNDS}`}
+            label={isLastRound ? "Gesamtergebnis 🏆" : `Frage ${roundNumber + 1} von ${TOTAL_ROUNDS} →`}
             onPress={goNext}
             tone="sun"
           />
-          <BrandButton label="Lobby" onPress={() => router.replace({ pathname: "/lobby", params: { code } })} tone="outline" />
+          <BrandButton
+            label="Lobby"
+            onPress={() => router.replace({ pathname: "/lobby", params: { code } })}
+            tone="outline"
+          />
         </Animated.View>
       </View>
     </StageScreen>
