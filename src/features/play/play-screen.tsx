@@ -12,10 +12,22 @@ import { StageScreen } from "@/ui/primitives/stage-screen";
 const choices = ["Timo", "Mika"] as const;
 type Choice = (typeof choices)[number];
 
+const TOTAL_ROUNDS = 5;
 const BOT_VOTE_DELAY_MS = 2400;
 
+const QUESTIONS: string[] = [
+  "Wer bringt die Gruppe am schnellsten zum Lachen?",
+  "Wer würde als Erstes in einem Horrorfilm sterben?",
+  "Wer hat das chaotischste Zimmer?",
+  "Wer ist am schlechtesten im Lügen?",
+  "Wer würde einen fremden Hund einfach mitnehmen?",
+];
+
 export function PlayScreen() {
-  const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
+  const { code = "RUND24", round = "1" } = useLocalSearchParams<{ code?: string; round?: string }>();
+  const roundNumber = Math.min(Math.max(parseInt(round, 10) || 1, 1), TOTAL_ROUNDS);
+  const question = QUESTIONS[roundNumber - 1];
+
   const [choice, setChoice] = useState<Choice | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [botVoted, setBotVoted] = useState(false);
@@ -23,16 +35,21 @@ export function PlayScreen() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setChoice(null);
+    setSubmitted(false);
+    setBotVoted(false);
+  }, [roundNumber]);
+
+  useEffect(() => {
     if (submitted && !botVoted) {
-      // Bot wählt zufällig nach kurzem Delay
       timerRef.current = setTimeout(() => {
         const botChoice = choices[Math.floor(Math.random() * choices.length)];
         setBotVoted(true);
-        // Weiterleitung zu Ergebnissen mit Stimmen
         router.replace({
           pathname: "/results",
           params: {
             code,
+            round: String(roundNumber),
             playerVote: choice ?? "",
             botVote: botChoice,
           },
@@ -42,20 +59,24 @@ export function PlayScreen() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [submitted, botVoted, choice, code]);
+  }, [submitted, botVoted, choice, code, roundNumber]);
 
   return (
     <StageScreen stageColor={colors.stageCoral} pattern="dots">
-      <AppHeader title="Frage 1 von 5" actionLabel="Lobby" onAction={() => router.back()} />
+      <AppHeader
+        title={`Frage ${roundNumber} von ${TOTAL_ROUNDS}`}
+        actionLabel="Lobby"
+        onAction={() => router.replace({ pathname: "/lobby", params: { code } })}
+      />
 
       <View style={{ flex: 1, justifyContent: "center", paddingVertical: 24, gap: 30 }}>
-        <Animated.View entering={reducedMotion ? undefined : FadeInDown.duration(260)} style={{ gap: 12 }}>
+        <Animated.View key={roundNumber} entering={reducedMotion ? undefined : FadeInDown.duration(260)} style={{ gap: 12 }}>
           <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 14, letterSpacing: 0.8 }}>RAUM {code}</Text>
           <Text
             selectable
             style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 40, lineHeight: 43, maxWidth: 430 }}
           >
-            Wer bringt die Gruppe am schnellsten zum Lachen?
+            {question}
           </Text>
           <Text selectable style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 17, lineHeight: 24 }}>
             Tippe auf eine Person. Deine Wahl bleibt geheim.
