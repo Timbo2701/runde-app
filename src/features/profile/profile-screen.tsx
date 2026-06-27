@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Image, Pressable, Share, Switch, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
+import { ACHIEVEMENTS } from "@/data/achievements";
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { getInitials } from "@/lib/room";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import type { Achievement } from "@/types/achievements";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
@@ -29,6 +31,86 @@ function CameraIcon() {
       <View style={{ position: "absolute", bottom: 0, width: 16, height: 11, borderRadius: 2.5, backgroundColor: colors.white, alignItems: "center", justifyContent: "center" }}>
         <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: colors.ink, borderWidth: 1.5, borderColor: colors.white }} />
       </View>
+    </View>
+  );
+}
+
+function AchievementPill({ achievement }: { achievement: Achievement }) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        backgroundColor: achievement.isUnlocked
+          ? "rgba(255,216,77,0.15)"
+          : "rgba(255,255,255,0.06)",
+        borderWidth: 1,
+        borderColor: achievement.isUnlocked
+          ? "rgba(255,216,77,0.4)"
+          : "rgba(255,255,255,0.1)",
+        borderRadius: radii.control,
+        paddingHorizontal: 12,
+        paddingVertical: 9,
+      }}
+    >
+      <Text style={{ fontSize: 20, opacity: achievement.isUnlocked ? 1 : 0.4 }}>
+        {achievement.emoji}
+      </Text>
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text
+          style={{
+            color: achievement.isUnlocked ? colors.white : colors.whiteSoft,
+            fontFamily: fonts.bodySemiBold,
+            fontSize: 13,
+            opacity: achievement.isUnlocked ? 1 : 0.6,
+          }}
+        >
+          {achievement.title}
+        </Text>
+        {achievement.progress && !achievement.isUnlocked && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View
+              style={{
+                flex: 1,
+                height: 3,
+                borderRadius: 2,
+                backgroundColor: "rgba(255,255,255,0.12)",
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  height: 3,
+                  width: `${Math.min(
+                    100,
+                    (achievement.progress.current / achievement.progress.target) * 100
+                  )}%`,
+                  borderRadius: 2,
+                  backgroundColor: colors.sun,
+                }}
+              />
+            </View>
+            <Text style={{ color: colors.whiteSoft, fontFamily: fonts.mono, fontSize: 10 }}>
+              {achievement.progress.current}/{achievement.progress.target}
+            </Text>
+          </View>
+        )}
+      </View>
+      {achievement.isUnlocked && (
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: colors.sun,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: colors.ink, fontSize: 10, fontFamily: fonts.bodyBold }}>✓</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -76,8 +158,19 @@ export function ProfileScreen() {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // Mock stats
+  const statsRows = [
+    { emoji: "🎮", label: "Runden", value: String(profile.roundsPlayed || 0) },
+    { emoji: "🏆", label: "Siege", value: String(profile.wins || 0) },
+    { emoji: "⚡", label: "Lieblingsmodus", value: "Klassiker" },
+    { emoji: "🎯", label: "Beste Kategorie", value: "Schätzen" },
+  ];
+
+  const previewAchievements = ACHIEVEMENTS.slice(0, 4);
+  const unlockedCount = ACHIEVEMENTS.filter((a) => a.isUnlocked).length;
+
   return (
-    <StageScreen stageColor={colors.stageCoral} pattern="dots">
+    <StageScreen stageColor={colors.stageCoral} pattern="dots" scrollEnabled>
       <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.canGoBack() ? router.back() : router.replace("/")} />
 
       {/* Tab-Switcher */}
@@ -117,10 +210,10 @@ export function ProfileScreen() {
 
       {/* PROFIL TAB */}
       {tab === "profil" && (
-        <Animated.View entering={reducedMotion ? undefined : FadeInUp.duration(240)} style={{ gap: 24 }}>
+        <Animated.View entering={reducedMotion ? undefined : FadeInUp.duration(240)} style={{ gap: 24, paddingBottom: 16 }}>
 
           {/* Avatar */}
-          <View style={{ alignItems: "center", gap: 16 }}>
+          <View style={{ alignItems: "center", gap: 14 }}>
             <Pressable onPress={pickPhoto} accessibilityLabel="Profilbild ändern" accessibilityRole="button">
               {/* Glow ring */}
               <View style={{
@@ -174,28 +267,52 @@ export function ProfileScreen() {
               <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 28 }}>
                 {name || "Dein Name"}
               </Text>
-              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 14 }}>
-                So sehen dich deine Freunde
-              </Text>
-            </View>
-
-            {/* Mini Stats */}
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {[{ emoji: "🎮", label: "0 Runden" }, { emoji: "🏆", label: "0 Siege" }].map((stat) => (
-                <View key={stat.label} style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  backgroundColor: "rgba(0,0,0,0.2)",
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
+              {/* Titel-Badge (mock) */}
+              {profile.selectedTitle ? (
+                <View style={{
+                  backgroundColor: "rgba(255,216,77,0.2)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,216,77,0.5)",
+                  paddingHorizontal: 12,
+                  paddingVertical: 4,
                   borderRadius: radii.round,
                 }}>
-                  <Text style={{ fontSize: 14 }}>{stat.emoji}</Text>
-                  <Text style={{ color: colors.white, fontFamily: fonts.bodySemiBold, fontSize: 13 }}>{stat.label}</Text>
+                  <Text style={{ color: colors.sun, fontFamily: fonts.bodySemiBold, fontSize: 12 }}>
+                    {profile.selectedTitle}
+                  </Text>
                 </View>
-              ))}
+              ) : (
+                <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 13 }}>
+                  So sehen dich deine Freunde
+                </Text>
+              )}
             </View>
+          </View>
+
+          {/* Stats 2×2 Grid */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+            {statsRows.map((stat) => (
+              <View
+                key={stat.label}
+                style={{
+                  flex: 1,
+                  minWidth: "44%",
+                  backgroundColor: "rgba(0,0,0,0.2)",
+                  borderRadius: radii.control,
+                  padding: spacing.lg,
+                  gap: 4,
+                  alignItems: "flex-start",
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>{stat.emoji}</Text>
+                <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 18, lineHeight: 22 }}>
+                  {stat.value}
+                </Text>
+                <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 11 }}>
+                  {stat.label}
+                </Text>
+              </View>
+            ))}
           </View>
 
           {/* Felder */}
@@ -213,6 +330,59 @@ export function ProfileScreen() {
               tone="sun"
             />
           </Animated.View>
+
+          {/* Achievements Preview */}
+          <View style={{ gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
+                Achievements
+              </Text>
+              <View style={{
+                backgroundColor: "rgba(255,216,77,0.2)",
+                paddingHorizontal: 10,
+                paddingVertical: 3,
+                borderRadius: radii.round,
+              }}>
+                <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 11 }}>
+                  {unlockedCount}/{ACHIEVEMENTS.length}
+                </Text>
+              </View>
+            </View>
+            <View style={{ gap: 8 }}>
+              {previewAchievements.map((a) => (
+                <AchievementPill key={a.id} achievement={a} />
+              ))}
+            </View>
+          </View>
+
+          {/* Shop Banner */}
+          <Pressable
+            onPress={() => router.push("/shop" as never)}
+            style={({ pressed }) => ({
+              borderRadius: radii.card,
+              borderCurve: "continuous",
+              backgroundColor: "rgba(255,216,77,0.12)",
+              borderWidth: 1.5,
+              borderColor: "rgba(255,216,77,0.35)",
+              padding: spacing.xl,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 14,
+              opacity: pressed ? 0.85 : 1,
+            })}
+            accessibilityRole="button"
+          >
+            <Text style={{ fontSize: 28 }}>🛍️</Text>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
+                Runde Shop
+              </Text>
+              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12 }}>
+                Kosmetik, Fragenpakete, Host Pass
+              </Text>
+            </View>
+            <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 18 }}>→</Text>
+          </Pressable>
 
           {/* Teilen */}
           <Pressable
@@ -244,12 +414,7 @@ export function ProfileScreen() {
             SOUND & HAPTIK
           </Text>
 
-          {/* Grouped settings block */}
-          <View style={{
-            backgroundColor: "rgba(0,0,0,0.22)",
-            borderRadius: radii.card,
-            overflow: "hidden",
-          }}>
+          <View style={{ backgroundColor: "rgba(0,0,0,0.22)", borderRadius: radii.card, overflow: "hidden" }}>
             {SETTINGS_ROWS.map((row, index) => (
               <Animated.View
                 key={row.key}
@@ -265,7 +430,6 @@ export function ProfileScreen() {
                   paddingHorizontal: spacing.xl,
                   paddingVertical: 16,
                 }}>
-                  {/* Icon */}
                   <View style={{
                     width: 40,
                     height: 40,
@@ -276,7 +440,6 @@ export function ProfileScreen() {
                   }}>
                     <Text style={{ fontSize: 20 }}>{row.emoji}</Text>
                   </View>
-
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={{ color: colors.white, fontFamily: fonts.bodySemiBold, fontSize: 15 }}>
                       {row.label}
@@ -285,7 +448,6 @@ export function ProfileScreen() {
                       {row.sublabel}
                     </Text>
                   </View>
-
                   <Switch
                     value={settings[row.key]}
                     onValueChange={() => toggleSetting(row.key)}

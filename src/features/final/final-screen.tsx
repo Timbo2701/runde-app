@@ -1,8 +1,17 @@
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect } from "react";
-import { Image, Text, View, useWindowDimensions } from "react-native";
-import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
+import { Image, Pressable, Text, View, useWindowDimensions } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+} from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { useProfile } from "@/lib/profile-context";
@@ -14,6 +23,82 @@ import { StageScreen } from "@/ui/primitives/stage-screen";
 
 const TOTAL_ROUNDS = 5;
 const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
+
+// Goldene Krone als eigenständiges View-Overlay (kein plain Emoji im Text).
+// Pop-/Bounce-Animation via Reanimated Spring.
+function CrownBadge({ reducedMotion }: { reducedMotion: boolean }) {
+  const scale = useSharedValue(0);
+  const rotate = useSharedValue(-20);
+
+  useEffect(() => {
+    scale.value = withDelay(
+      680,
+      withSpring(1, { damping: 6, stiffness: 220, mass: 0.8 })
+    );
+    rotate.value = withDelay(
+      680,
+      withSpring(-14, { damping: 8, stiffness: 180 })
+    );
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }, { rotate: `${rotate.value}deg` }],
+  }));
+
+  if (reducedMotion) {
+    return (
+      <View style={crownContainerStyle}>
+        <View style={crownCircleStyle}>
+          <Text style={{ fontSize: 16, lineHeight: 20 }}>👑</Text>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <Animated.View style={[crownContainerStyle, animStyle]}>
+      {/* Glow-Ring */}
+      <View
+        style={{
+          position: "absolute",
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: "rgba(255,216,77,0.35)",
+        }}
+      />
+      {/* Gold-Kreis mit Krone */}
+      <View style={crownCircleStyle}>
+        <Text style={{ fontSize: 16, lineHeight: 20 }}>👑</Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+const crownContainerStyle = {
+  position: "absolute" as const,
+  top: -18,
+  left: 4,
+  width: 30,
+  height: 30,
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+  zIndex: 10,
+};
+
+const crownCircleStyle = {
+  width: 30,
+  height: 30,
+  borderRadius: 15,
+  backgroundColor: colors.sun,
+  alignItems: "center" as const,
+  justifyContent: "center" as const,
+  shadowColor: colors.sun,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.9,
+  shadowRadius: 8,
+  elevation: 10,
+};
 
 export function FinalScreen() {
   const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
@@ -30,6 +115,7 @@ export function FinalScreen() {
 
   useEffect(() => {
     if (reducedMotion) return;
+    // Kurzer Success-Haptic beim Winner-Reveal (iOS)
     if (process.env.EXPO_OS === "ios") {
       const t = setTimeout(() => {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -43,19 +129,28 @@ export function FinalScreen() {
       <StageScreen stageColor={colors.stageGrape} pattern="rings">
         <AppHeader title={`Raum ${code}`} actionLabel="Verlassen" onAction={() => router.replace("/")} />
 
-        <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 28 }}>
+        <View style={{ flex: 1, justifyContent: "center", paddingVertical: 16, gap: 24 }}>
 
           {/* Hero */}
           <Animated.View
             entering={reducedMotion ? undefined : FadeInUp.duration(350)}
             style={{ alignItems: "center", gap: 10 }}
           >
-            <Animated.Text
+            <Animated.View
               entering={reducedMotion ? undefined : ZoomIn.delay(200).duration(400).springify().damping(10)}
-              style={{ fontSize: 80, lineHeight: 88 }}
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: "rgba(255,216,77,0.2)",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: "rgba(255,216,77,0.5)",
+              }}
             >
-              🏆
-            </Animated.Text>
+              <Text style={{ fontSize: 44, lineHeight: 52 }}>🏆</Text>
+            </Animated.View>
 
             <View style={{ alignItems: "center", gap: 6 }}>
               <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.6 }}>
@@ -86,7 +181,11 @@ export function FinalScreen() {
               return (
                 <Animated.View
                   key={player.name}
-                  entering={reducedMotion ? undefined : FadeInDown.delay(250 + index * 130).duration(280)}
+                  entering={
+                    reducedMotion
+                      ? undefined
+                      : FadeInDown.delay(250 + index * 130).duration(280)
+                  }
                   style={{
                     borderRadius: radii.card,
                     borderCurve: "continuous",
@@ -108,20 +207,13 @@ export function FinalScreen() {
                       {rank}.
                     </Text>
 
-                    {/* Avatar with floating crown */}
+                    {/* Avatar mit CrownBadge */}
                     <View style={{ position: "relative" }}>
-                      {isWinner && (
-                        <Animated.Text
-                          entering={reducedMotion ? undefined : ZoomIn.delay(700).springify().damping(6)}
-                          style={crownStyle}
-                        >
-                          👑
-                        </Animated.Text>
-                      )}
+                      {isWinner && <CrownBadge reducedMotion={reducedMotion} />}
                       <View style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 24,
+                        width: 52,
+                        height: 52,
+                        borderRadius: 26,
                         overflow: "hidden",
                         backgroundColor: player.color,
                         alignItems: "center",
@@ -130,8 +222,8 @@ export function FinalScreen() {
                         borderColor: colors.sun,
                       }}>
                         {player.avatar
-                          ? <Image source={{ uri: player.avatar }} style={{ width: 48, height: 48 }} />
-                          : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 17 }}>{player.name[0]}</Text>
+                          ? <Image source={{ uri: player.avatar }} style={{ width: 52, height: 52 }} />
+                          : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 18 }}>{player.name[0]}</Text>
                         }
                       </View>
                     </View>
@@ -166,7 +258,7 @@ export function FinalScreen() {
                     </View>
                   </View>
 
-                  {/* Progress bar */}
+                  {/* Animierter Fortschrittsbalken */}
                   <View style={{
                     height: 8,
                     borderRadius: 4,
@@ -202,10 +294,32 @@ export function FinalScreen() {
             />
           </Animated.View>
 
+          {/* Shop-Tease */}
+          <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(1000).duration(300)}>
+            <Pressable
+              onPress={() => router.push("/shop" as never)}
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                paddingVertical: 12,
+                opacity: pressed ? 0.7 : 1,
+              })}
+              accessibilityRole="button"
+            >
+              <Text style={{ fontSize: 16 }}>✨</Text>
+              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 13 }}>
+                Gewinner-Effekte im Shop freischalten
+              </Text>
+              <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 13 }}>→</Text>
+            </Pressable>
+          </Animated.View>
+
         </View>
       </StageScreen>
 
-      {/* Confetti — Reanimated worklets, UI thread, 60fps */}
+      {/* Confetti — Reanimated 3 Worklets, UI Thread, 60fps, einmalig */}
       <ConfettiSystem
         active={!reducedMotion}
         screenWidth={screenWidth}
@@ -215,12 +329,3 @@ export function FinalScreen() {
     </View>
   );
 }
-
-const crownStyle = {
-  position: "absolute" as const,
-  top: -20,
-  left: 10,
-  fontSize: 22,
-  transform: [{ rotate: "-12deg" }],
-  zIndex: 10,
-};

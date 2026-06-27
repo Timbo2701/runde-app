@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useProfile } from "@/lib/profile-context";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { colors, fonts } from "@/design/tokens";
@@ -61,9 +61,29 @@ export function HomeScreen() {
         </Animated.View>
       </Animated.View>
 
-      <Text selectable style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 13, textAlign: "center" }}>
-        Für Freundesrunden, die noch eine Geschichte brauchen.
-      </Text>
+      <View style={{ gap: 12 }}>
+        <Text selectable style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 13, textAlign: "center" }}>
+          Für Freundesrunden, die noch eine Geschichte brauchen.
+        </Text>
+        <Pressable
+          onPress={() => router.push("/shop" as never)}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            opacity: pressed ? 0.7 : 1,
+            paddingVertical: 4,
+          })}
+          accessibilityRole="button"
+        >
+          <Text style={{ fontSize: 14 }}>🛍️</Text>
+          <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 13 }}>
+            Shop
+          </Text>
+          <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 13 }}>✨</Text>
+        </Pressable>
+      </View>
     </StageScreen>
   );
 }
