@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ProfileProvider } from "@/lib/profile-context";
 import { BricolageGrotesque_700Bold } from "@expo-google-fonts/bricolage-grotesque/700Bold";
 import { BricolageGrotesque_800ExtraBold } from "@expo-google-fonts/bricolage-grotesque/800ExtraBold";
 import { IBMPlexMono_500Medium } from "@expo-google-fonts/ibm-plex-mono/500Medium";
@@ -28,12 +29,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded) return;
-    AsyncStorage.getItem("@runde:onboarding_done").then((val) => {
-      if (!val) {
-        router.replace("/onboarding");
-      }
-      setChecked(true);
-    });
+    // DEV: always show onboarding
+    router.replace("/onboarding");
+    setChecked(true);
   }, [fontsLoaded]);
 
   if (!fontsLoaded || !checked) {
@@ -41,7 +39,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <ProfileProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -50,6 +48,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.stageBerry },
         }}
       />
-    </>
+    </ProfileProvider>
   );
 }

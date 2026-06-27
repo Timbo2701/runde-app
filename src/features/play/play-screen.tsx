@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
+import { useProfile } from "@/lib/profile-context";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
@@ -9,8 +10,7 @@ import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
-const choices = ["Timo", "Mika"] as const;
-type Choice = (typeof choices)[number];
+const BOT_NAME = "Mika";
 
 const TOTAL_ROUNDS = 5;
 const BOT_VOTE_DELAY_MS = 2400;
@@ -25,6 +25,11 @@ const QUESTIONS: string[] = [
 
 export function PlayScreen() {
   const { code = "RUND24", round = "1" } = useLocalSearchParams<{ code?: string; round?: string }>();
+  const { name: profileName } = useProfile();
+  const myName = profileName || "Du";
+  const choices = [myName, BOT_NAME] as const;
+  type Choice = (typeof choices)[number];
+
   const roundNumber = Math.min(Math.max(parseInt(round, 10) || 1, 1), TOTAL_ROUNDS);
   const question = QUESTIONS[roundNumber - 1];
 
@@ -130,7 +135,7 @@ export function PlayScreen() {
 
         <BrandButton
           disabled={!choice || submitted}
-          label={submitted ? "Warte auf Mika…" : "Stimme abgeben"}
+          label={submitted ? `Warte auf ${BOT_NAME}…` : "Stimme abgeben"}
           onPress={() => setSubmitted(true)}
           tone="sun"
         />

@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useProfile } from "@/lib/profile-context";
 import { Image, Pressable, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
@@ -31,6 +32,7 @@ function CameraIcon() {
 }
 
 export function SetupScreen() {
+  const profile = useProfile();
   const [name, setName] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -50,12 +52,8 @@ export function SetupScreen() {
 
   const finish = async () => {
     const finalName = name.trim() || randomName();
-    await AsyncStorage.multiSet([
-      ["@runde:onboarding_done", "1"],
-      ["@runde:profile_name", finalName],
-      ["@runde:profile_photo", photo ?? ""],
-      ["@runde:profile_email", email.trim()],
-    ]);
+    await AsyncStorage.setItem("@runde:onboarding_done", "1");
+    await profile.setProfile({ name: finalName, photo, email: email.trim() });
     router.replace("/");
   };
 

@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
+import { useProfile } from "@/lib/profile-context";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -9,17 +10,20 @@ import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
 const TOTAL_ROUNDS = 5;
-
-const scores = [
-  { name: "Mika", points: 3, color: colors.stageCoral },
-  { name: "Timo", points: 2, color: colors.stageBerry },
-];
+const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
 
 export function FinalScreen() {
   const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
+  const { name: profileName, photo: profilePhoto } = useProfile();
+  const myName = profileName || "Du";
   const reducedMotion = useReducedMotion();
-  const winner = scores[0];
   const maxPoints = TOTAL_ROUNDS;
+
+  const scores = [
+    { name: "Mika", points: 3, color: colors.stageCoral, avatar: MIKA_AVATAR },
+    { name: myName, points: 2, color: colors.stageBerry, avatar: profilePhoto ?? null },
+  ];
+  const winner = scores[0];
 
   return (
     <StageScreen stageColor={colors.stageGrape} pattern="rings">
@@ -72,17 +76,11 @@ export function FinalScreen() {
                   </Text>
 
                   {/* Avatar */}
-                  <View style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: player.color,
-                  }}>
-                    <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
-                      {player.name[0]}
-                    </Text>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, overflow: "hidden", backgroundColor: player.color, alignItems: "center", justifyContent: "center" }}>
+                    {player.avatar
+                      ? <Image source={{ uri: player.avatar }} style={{ width: 44, height: 44 }} />
+                      : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>{player.name[0]}</Text>
+                    }
                   </View>
 
                   {/* Name */}

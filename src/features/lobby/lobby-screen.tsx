@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import { Share, Text, View } from "react-native";
+import { Image, Share, Text, View } from "react-native";
+import { useProfile } from "@/lib/profile-context";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { colors, fonts, radii } from "@/design/tokens";
@@ -11,14 +12,18 @@ import { BrandButton } from "@/ui/primitives/brand-button";
 import { SocialSpotlight } from "@/ui/primitives/social-spotlight";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
-const players = [
-  { id: "you", name: "Timo", color: colors.stageBerry },
-  { id: "mika", name: "Mika", color: colors.stageCoral },
-];
+const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
 
 export function LobbyScreen() {
   const params = useLocalSearchParams<{ code?: string; name?: string }>();
   const code = normalizeRoomCode(params.code ?? "RUND24") || "RUND24";
+  const { name: profileName, photo: profilePhoto } = useProfile();
+  const myName = profileName || params.name || "Du";
+
+  const players = [
+    { id: "you", name: myName, color: colors.stageBerry, photo: profilePhoto ?? null },
+    { id: "mika", name: "Mika", color: colors.stageCoral, photo: MIKA_AVATAR },
+  ];
   const reducedMotion = useReducedMotion();
 
   const shareRoom = async () => {
@@ -76,17 +81,11 @@ export function LobbyScreen() {
                 entering={reducedMotion ? undefined : FadeInDown.delay(130 + index * 55)}
                 style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 8 }}
               >
-                <View
-                  style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 21,
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: player.color,
-                  }}
-                >
-                  <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 14 }}>{getInitials(player.name)}</Text>
+                <View style={{ width: 42, height: 42, borderRadius: 21, overflow: "hidden", backgroundColor: player.color, alignItems: "center", justifyContent: "center" }}>
+                  {player.photo
+                    ? <Image source={{ uri: player.photo }} style={{ width: 42, height: 42 }} />
+                    : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 14 }}>{getInitials(player.name)}</Text>
+                  }
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: colors.ink, fontFamily: fonts.bodySemiBold, fontSize: 16 }}>{player.name}</Text>

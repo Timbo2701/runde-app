@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Image, Pressable, Switch, Text, View } from "react-native";
+import { useProfile } from "@/lib/profile-context";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -66,9 +67,10 @@ const SETTINGS_ROWS: { key: keyof Settings; label: string; sublabel: string }[] 
 ];
 
 export function ProfileScreen() {
+  const profile = useProfile();
   const [tab, setTab] = useState<Tab>("profil");
-  const [name, setName] = useState("Timo");
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [name, setName] = useState(profile.name || "");
+  const [photo, setPhoto] = useState<string | null>(profile.photo);
   const [saved, setSaved] = useState(false);
   const [settings, setSettings] = useState<Settings>({
     musik: true,
@@ -200,7 +202,7 @@ export function ProfileScreen() {
             <BrandButton
               disabled={!name.trim()}
               label={saved ? "Profil gespeichert" : "Profil speichern"}
-              onPress={() => setSaved(true)}
+              onPress={() => { profile.setProfile({ name: name.trim(), photo }); setSaved(true); }}
               tone="sun"
             />
           </Animated.View>

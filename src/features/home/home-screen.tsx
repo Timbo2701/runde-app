@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { useProfile } from "@/lib/profile-context";
 import { Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
@@ -15,14 +16,16 @@ import { TextField } from "@/ui/primitives/text-field";
 export function HomeScreen() {
   const [roomCode, setRoomCode] = useState("");
   const reducedMotion = useReducedMotion();
+  const { name: profileName } = useProfile();
+  const playerName = profileName || "Du";
 
   const joinRoom = () => {
     if (!isRoomCodeReady(roomCode)) return;
-    router.push({ pathname: "/lobby", params: { code: normalizeRoomCode(roomCode), name: "Timo" } });
+    router.push({ pathname: "/lobby", params: { code: normalizeRoomCode(roomCode), name: playerName } });
   };
 
   const createRoom = () => {
-    router.push({ pathname: "/lobby", params: { code: makeRoomCode(), name: "Timo" } });
+    router.push({ pathname: "/lobby", params: { code: makeRoomCode(), name: playerName } });
   };
 
   return (

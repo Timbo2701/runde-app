@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
+import { useProfile } from "@/lib/profile-context";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -8,11 +9,11 @@ import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
-const choices = ["Timo", "Mika"] as const;
-type Choice = (typeof choices)[number];
+const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
+const BOT_NAME = "Mika";
 const TOTAL_ROUNDS = 5;
 
-function countVotes(votes: Choice[]): Record<string, number> {
+function countVotes(votes: string[]): Record<string, number> {
   const tally: Record<string, number> = {};
   for (const v of votes) tally[v] = (tally[v] ?? 0) + 1;
   return tally;
@@ -25,12 +26,15 @@ export function ResultsScreen() {
     playerVote?: string;
     botVote?: string;
   }>();
+  const { name: profileName, photo: profilePhoto } = useProfile();
+  const myName = profileName || "Du";
 
+  const choices = [myName, BOT_NAME];
   const roundNumber = parseInt(round, 10) || 1;
   const isLastRound = roundNumber >= TOTAL_ROUNDS;
 
-  const votes = [playerVote, botVote].filter((v): v is Choice =>
-    choices.includes(v as Choice)
+  const votes = [playerVote, botVote].filter((v): v is string =>
+    typeof v === "string" && choices.includes(v)
   );
   const tally = countVotes(votes);
   const sorted = [...choices].sort((a, b) => (tally[b] ?? 0) - (tally[a] ?? 0));
@@ -75,6 +79,8 @@ export function ResultsScreen() {
             const voteCount = tally[person] ?? 0;
             const isWinner = !isTie && index === 0;
             const pct = votes.length > 0 ? voteCount / votes.length : 0;
+            const avatarUri = person === BOT_NAME ? MIKA_AVATAR : (profilePhoto ?? null);
+            const avatarColor = person === BOT_NAME ? colors.stageCoral : colors.stageBerry;
 
             return (
               <Animated.View
@@ -90,6 +96,12 @@ export function ResultsScreen() {
               >
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                   {isWinner && <Text style={{ fontSize: 22 }}>🏆</Text>}
+                  <View style={{ width: 36, height: 36, borderRadius: 18, overflow: "hidden", backgroundColor: avatarColor, alignItems: "center", justifyContent: "center" }}>
+                    {avatarUri
+                      ? <Image source={{ uri: avatarUri }} style={{ width: 36, height: 36 }} />
+                      : <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 13 }}>{person[0]}</Text>
+                    }
+                  </View>
                   <Text style={{ flex: 1, color: isWinner ? colors.ink : colors.white, fontFamily: fonts.bodyBold, fontSize: 20 }}>
                     {person}
                   </Text>
