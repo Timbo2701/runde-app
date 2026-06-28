@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
-import { ScrollView, View, useWindowDimensions } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors } from "@/design/tokens";
 
@@ -63,35 +63,38 @@ function Pattern({ type }: { type: NonNullable<StageScreenProps["pattern"]> }) {
 }
 
 export function StageScreen({ children, stageColor, pattern = "confetti", scrollEnabled = false }: StageScreenProps) {
-  const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="never"
-      keyboardShouldPersistTaps="handled"
-      scrollEnabled={scrollEnabled}
-      bounces={false}
-      overScrollMode="never"
-      style={{ flex: 1, backgroundColor: stageColor }}
-      contentContainerStyle={{ minHeight: height, backgroundColor: stageColor }}
-    >
+    <View style={{ flex: 1, backgroundColor: stageColor }}>
+      {/* Decorative background pattern */}
       <View style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         <Pattern type={pattern} />
       </View>
-      <View
-        style={{
-          flex: 1,
-          width: "100%",
-          maxWidth: 520,
-          alignSelf: "center",
-          paddingTop: Math.max(insets.top, 20),
-          paddingBottom: Math.max(insets.bottom, 24),
-          paddingHorizontal: 20,
-        }}
-      >
-        {children}
-      </View>
-    </ScrollView>
+
+      {/* SafeAreaView handles top/bottom insets reliably on all iPhone models */}
+      <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="never"
+          keyboardShouldPersistTaps="handled"
+          scrollEnabled={scrollEnabled}
+          bounces={false}
+          overScrollMode="never"
+          style={{ flex: 1 }}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <View
+            style={{
+              flex: 1,
+              width: "100%",
+              maxWidth: 520,
+              alignSelf: "center",
+              paddingHorizontal: 20,
+              paddingVertical: 8,
+            }}
+          >
+            {children}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
