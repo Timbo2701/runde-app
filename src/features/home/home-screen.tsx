@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useProfile } from "@/lib/profile-context";
 import { Pressable, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { BottomNav } from "@/ui/primitives/bottom-nav";
 
 import { colors, fonts } from "@/design/tokens";
 import { isRoomCodeReady, normalizeRoomCode } from "@/lib/room";
@@ -29,6 +30,7 @@ export function HomeScreen() {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <StageScreen stageColor={colors.stageBerry} pattern="confetti">
       <AppHeader showBrand actionLabel="Profil" onAction={() => router.push("/profile")} />
 
@@ -36,6 +38,33 @@ export function HomeScreen() {
         entering={reducedMotion ? undefined : FadeInUp.duration(260)}
         style={{ flex: 1, justifyContent: "center", paddingVertical: 26, gap: 30 }}
       >
+        {/* Ranked Arena teaser */}
+        <Pressable
+          onPress={() => router.push("/ranked" as never)}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            padding: 14,
+            borderRadius: 20,
+            backgroundColor: "rgba(111,43,211,0.35)",
+            borderWidth: 1.5,
+            borderColor: "rgba(111,43,211,0.6)",
+            opacity: pressed ? 0.85 : 1,
+          })}
+          accessibilityRole="button"
+        >
+          <Text style={{ fontSize: 24 }}>⚔️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 13 }}>
+              Ranked Arena
+            </Text>
+            <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12 }}>
+              Steig auf – Neon Season 1 läuft!
+            </Text>
+          </View>
+          <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 16 }}>→</Text>
+        </Pressable>
         <SocialSpotlight label="Wer ist heute dabei?" sublabel="Ein Code. Eine Runde. Viele Geschichten." />
 
         <Animated.View entering={reducedMotion ? undefined : FadeInDown.delay(90).duration(260)} style={{ gap: 14 }}>
@@ -85,6 +114,8 @@ export function HomeScreen() {
         </Pressable>
       </View>
     </StageScreen>
+    <BottomNav activeTab="home" />
+    </View>
   );
 }
 
