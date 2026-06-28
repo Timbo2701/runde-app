@@ -68,7 +68,7 @@ export function StageScreen({ children, stageColor, pattern = "confetti", scroll
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
       scrollEnabled={scrollEnabled}
       bounces={false}
