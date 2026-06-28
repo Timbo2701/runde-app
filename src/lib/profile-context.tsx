@@ -18,6 +18,7 @@ type ProfileState = {
 
 type ProfileContextValue = ProfileState & {
   setProfile: (update: Partial<ProfileState>) => Promise<void>;
+  addOwnedCosmetics: (ids: string[]) => Promise<void>;
   loaded: boolean;
 };
 
@@ -33,6 +34,7 @@ const ProfileContext = createContext<ProfileContextValue>({
   ownedCosmetics: [],
   loaded: false,
   setProfile: async () => {},
+  addOwnedCosmetics: async () => {},
 });
 
 const KEYS = [
@@ -100,8 +102,16 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     [state]
   );
 
+  const addOwnedCosmetics = useCallback(
+    async (ids: string[]) => {
+      const next = [...new Set([...state.ownedCosmetics, ...ids])];
+      await setProfile({ ownedCosmetics: next });
+    },
+    [state.ownedCosmetics, setProfile]
+  );
+
   return (
-    <ProfileContext.Provider value={{ ...state, loaded, setProfile }}>
+    <ProfileContext.Provider value={{ ...state, loaded, setProfile, addOwnedCosmetics }}>
       {children}
     </ProfileContext.Provider>
   );

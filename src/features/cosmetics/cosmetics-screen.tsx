@@ -114,6 +114,7 @@ function CosmeticCard({
   isSelected,
   owned,
   onPress,
+  onBuy,
   index,
   reducedMotion,
 }: {
@@ -121,6 +122,7 @@ function CosmeticCard({
   isSelected: boolean;
   owned: boolean;
   onPress: () => void;
+  onBuy?: () => void;
   index: number;
   reducedMotion: boolean;
 }) {
@@ -208,6 +210,24 @@ function CosmeticCard({
             {item.description}
           </Text>
           {!owned && <SourceBadge item={item} achievementState={{}} ownedCosmetics={[]} />}
+          {!owned && item.source === "shop" && onBuy && (
+            <Pressable
+              onPress={onBuy}
+              style={({ pressed }) => ({
+                marginTop: 4,
+                alignSelf: "flex-start",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: radii.control,
+                backgroundColor: colors.sun,
+                opacity: pressed ? 0.8 : 1,
+              })}
+            >
+              <Text style={{ color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 12 }}>
+                Kaufen {item.price}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Selection indicator */}
@@ -290,7 +310,7 @@ function PreviewBar({
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export function CosmeticsScreen() {
-  const { selectedBadge, selectedTitle, selectedWinnerEffect, ownedCosmetics, setProfile } =
+  const { selectedBadge, selectedTitle, selectedWinnerEffect, ownedCosmetics, setProfile, addOwnedCosmetics } =
     useProfile();
   const reducedMotion = useReducedMotion();
 
@@ -404,6 +424,7 @@ export function CosmeticsScreen() {
               isSelected={selected}
               owned={owned}
               onPress={() => setLocal(activeTab, item.id)}
+              onBuy={item.source === "shop" ? () => void addOwnedCosmetics([item.id]) : undefined}
               index={i}
               reducedMotion={reducedMotion}
             />

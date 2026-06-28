@@ -36,6 +36,7 @@ export interface ShopItem {
   emoji: string;
   accentColor: string;
   mockEntitlement: string;
+  cosmeticIds?: string[];
   unlockText: string;
   legalNote?: string;
   comingSoon?: boolean;

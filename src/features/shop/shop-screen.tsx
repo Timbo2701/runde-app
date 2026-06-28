@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated"
 
 import { SHOP_ITEMS } from "@/data/shop-items";
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import type { ShopCategory, ShopItem } from "@/types/shop";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -62,7 +63,7 @@ function CategoryPill({
   );
 }
 
-function FeaturedCard({ item }: { item: ShopItem }) {
+function FeaturedCard({ item, isOwned, onBuy }: { item: ShopItem; isOwned: boolean; onBuy: () => void }) {
   return (
     <View
       style={{
@@ -175,19 +176,19 @@ function FeaturedCard({ item }: { item: ShopItem }) {
       {/* CTA */}
       <Pressable
         style={({ pressed }) => ({
-          backgroundColor: colors.sun,
+          backgroundColor: isOwned ? "rgba(255,216,77,0.25)" : colors.sun,
           borderRadius: radii.control,
           borderCurve: "continuous",
           paddingVertical: 15,
           alignItems: "center",
-          opacity: pressed ? 0.88 : 1,
+          opacity: pressed && !isOwned ? 0.88 : 1,
         })}
-        onPress={() => {}}
+        onPress={isOwned ? undefined : onBuy}
         accessibilityRole="button"
         accessibilityLabel="Party Host Pass freischalten (Mock)"
       >
-        <Text style={{ color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 17 }}>
-          {item.unlockText} — {item.priceLabel}
+        <Text style={{ color: isOwned ? colors.sun : colors.ink, fontFamily: fonts.bodyBold, fontSize: 17 }}>
+          {isOwned ? "✓ Gekauft!" : `${item.unlockText} — ${item.priceLabel}`}
         </Text>
       </Pressable>
 
@@ -207,7 +208,7 @@ function FeaturedCard({ item }: { item: ShopItem }) {
   );
 }
 
-function ShopItemCard({ item, index, reducedMotion }: { item: ShopItem; index: number; reducedMotion: boolean }) {
+function ShopItemCard({ item, index, reducedMotion, isOwned, onBuy }: { item: ShopItem; index: number; reducedMotion: boolean; isOwned: boolean; onBuy: () => void }) {
   const isComingSoon = item.comingSoon;
   const isPopular = item.badge === "BELIEBT";
   const isNew = item.badge === "NEU";
@@ -302,25 +303,28 @@ function ShopItemCard({ item, index, reducedMotion }: { item: ShopItem; index: n
           <Text
             style={{
               flex: 1,
-              color: colors.sun,
+              color: isOwned ? "rgba(255,255,255,0.4)" : colors.sun,
               fontFamily: fonts.mono,
               fontSize: 18,
               fontWeight: "700",
+              textDecorationLine: isOwned ? "line-through" : "none",
             }}
           >
             {item.priceLabel}
           </Text>
 
           <Pressable
-            disabled={isComingSoon}
-            onPress={() => {}}
+            disabled={isComingSoon || isOwned}
+            onPress={isOwned ? undefined : onBuy}
             accessibilityRole="button"
             style={({ pressed }) => ({
               paddingHorizontal: 18,
               paddingVertical: 10,
               borderRadius: radii.control,
               borderCurve: "continuous",
-              backgroundColor: isComingSoon
+              backgroundColor: isOwned
+                ? "rgba(255,255,255,0.10)"
+                : isComingSoon
                 ? "rgba(255,255,255,0.12)"
                 : colors.sun,
               opacity: pressed ? 0.8 : 1,
@@ -328,12 +332,12 @@ function ShopItemCard({ item, index, reducedMotion }: { item: ShopItem; index: n
           >
             <Text
               style={{
-                color: isComingSoon ? colors.whiteSoft : colors.ink,
+                color: isOwned ? colors.whiteSoft : isComingSoon ? colors.whiteSoft : colors.ink,
                 fontFamily: fonts.bodyBold,
                 fontSize: 14,
               }}
             >
-              {isComingSoon ? "Bald verfügbar" : item.unlockText}
+              {isOwned ? "Gekauft ✓" : isComingSoon ? "Bald verfügbar" : item.unlockText}
             </Text>
           </Pressable>
         </View>
@@ -345,6 +349,15 @@ function ShopItemCard({ item, index, reducedMotion }: { item: ShopItem; index: n
 export function ShopScreen() {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const reducedMotion = useReducedMotion();
+  const { ownedCosmetics, addOwnedCosmetics } = useProfile();
+
+  const isItemOwned = (item: ShopItem) =>
+    ownedCosmetics.includes(item.mockEntitlement);
+
+  const handleBuy = async (item: ShopItem) => {
+    const ids = [item.mockEntitlement, ...(item.cosmeticIds ?? [])];
+    await addOwnedCosmetics(ids);
+  };
 
   const featured = SHOP_ITEMS.find((i) => i.isFeatured);
   const visibleItems = SHOP_ITEMS.filter((i) => {
@@ -411,7 +424,7 @@ export function ShopScreen() {
           entering={reducedMotion ? undefined : FadeInDown.delay(80).duration(280)}
           style={{ marginTop: 16 }}
         >
-          <FeaturedCard item={featured} />
+          <FeaturedCard item={featured} isOwned={isItemOwned(featured)} onBuy={() => void handleBuy(featured)} />
         </Animated.View>
       )}
 
@@ -431,6 +444,8 @@ export function ShopScreen() {
             item={item}
             index={index}
             reducedMotion={reducedMotion}
+            isOwned={isItemOwned(item)}
+            onBuy={() => void handleBuy(item)}
           />
         ))}
       </View>
