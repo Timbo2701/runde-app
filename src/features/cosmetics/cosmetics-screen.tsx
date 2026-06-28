@@ -30,10 +30,12 @@ const TABS: { id: CosmeticCategory; label: string; emoji: string }[] = [
 
 function isOwned(item: CosmeticItem, ownedCosmetics: string[], achievementState: Record<string, boolean>): boolean {
   if (item.source === "free") return true;
+  // Explicit ownership (earned via shop purchase or achievement auto-unlock) always wins
+  if (ownedCosmetics.includes(item.id)) return true;
   if (item.source === "achievement" && item.achievementId) {
     return achievementState[item.achievementId] ?? false;
   }
-  return ownedCosmetics.includes(item.id);
+  return false;
 }
 
 function getSelectedForCategory(

@@ -173,7 +173,7 @@ export function FinalScreen() {
       ];
   const winner = scores[0];
 
-  const { roundsPlayed, wins, setProfile } = useProfile();
+  const { roundsPlayed, wins, setProfile, selectedWinnerEffect } = useProfile();
 
   useEffect(() => {
     // Track stats: +1 round played, +1 win if local player won
@@ -385,12 +385,13 @@ export function FinalScreen() {
         </View>
       </StageScreen>
 
-      {/* Confetti — Reanimated 3 Worklets, UI Thread, 60fps, einmalig */}
+      {/* Winner-Effekt — Typ aus selectedWinnerEffect Kosmetik */}
       <ConfettiSystem
         active={!reducedMotion}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
         count={70}
+        effectId={selectedWinnerEffect ?? "effect_confetti"}
       />
     </View>
   );

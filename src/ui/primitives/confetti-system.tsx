@@ -8,7 +8,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const COLORS = ["#FFD84D", "#C52A87", "#6F2BD3", "#FFFFFF", "#F0446E", "#A855F7", "#FFB347"];
+const EFFECT_PALETTES: Record<string, string[]> = {
+  effect_confetti: ["#FFD84D", "#C52A87", "#6F2BD3", "#FFFFFF", "#F0446E", "#A855F7", "#FFB347"],
+  effect_fireworks: ["#FF4500", "#FF6A00", "#FFD84D", "#FF2244", "#FFFFFF", "#FF8C00", "#FF3D00"],
+  effect_stars:     ["#FFD84D", "#FFF176", "#FFEE58", "#FFFFFF", "#FFD700", "#FFC107", "#FFECB3"],
+  effect_lightning: ["#6F2BD3", "#A855F7", "#00E5FF", "#FFFFFF", "#7C4DFF", "#B388FF", "#40C4FF"],
+};
+const COLORS = EFFECT_PALETTES.effect_confetti;
 
 interface ParticleConfig {
   id: number;
@@ -28,12 +34,12 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-function makeParticles(count: number, screenWidth: number): ParticleConfig[] {
+function makeParticles(count: number, screenWidth: number, palette: string[]): ParticleConfig[] {
   return Array.from({ length: count }, (_, i) => {
     const r = (n: number) => seededRandom(i * 13 + n);
     return {
       id: i,
-      color: COLORS[i % COLORS.length],
+      color: palette[i % palette.length],
       startX: r(0) * screenWidth,
       startY: -10 - r(1) * 40,
       driftX: (r(2) - 0.5) * 180,
@@ -118,6 +124,7 @@ interface ConfettiSystemProps {
   screenWidth: number;
   screenHeight: number;
   count?: number;
+  effectId?: string;
 }
 
 export function ConfettiSystem({
@@ -125,10 +132,12 @@ export function ConfettiSystem({
   screenWidth,
   screenHeight,
   count = 70,
+  effectId = "effect_confetti",
 }: ConfettiSystemProps) {
+  const palette = EFFECT_PALETTES[effectId] ?? EFFECT_PALETTES.effect_confetti;
   const particles = useMemo(
-    () => makeParticles(count, screenWidth),
-    [count, screenWidth]
+    () => makeParticles(count, screenWidth, palette),
+    [count, screenWidth, effectId] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   if (!active) return null;
