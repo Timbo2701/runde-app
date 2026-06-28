@@ -11,6 +11,7 @@ import {
   type CosmeticItem,
 } from "@/data/cosmetics";
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { useAchievements } from "@/lib/use-achievements";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -313,6 +314,7 @@ export function CosmeticsScreen() {
   const { selectedBadge, selectedTitle, selectedWinnerEffect, ownedCosmetics, setProfile, addOwnedCosmetics } =
     useProfile();
   const reducedMotion = useReducedMotion();
+  const { achievements } = useAchievements();
 
   const [activeTab, setActiveTab] = useState<CosmeticCategory>("badge");
 
@@ -323,9 +325,9 @@ export function CosmeticsScreen() {
 
   const [saved, setSaved] = useState(false);
 
-  // Build achievement unlock map (static version — good enough without async here)
+  // Real persisted achievement unlock map
   const achievementState = Object.fromEntries(
-    ACHIEVEMENTS.map((a) => [a.id, a.isUnlocked])
+    achievements.map((a) => [a.id, a.isUnlocked])
   );
 
   const items = getCosmeticsByCategory(activeTab);

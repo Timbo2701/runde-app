@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Image, Pressable, Share, Switch, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
+import { COSMETICS } from "@/data/cosmetics";
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { useAchievements } from "@/lib/use-achievements";
 import { getInitials } from "@/lib/room";
@@ -279,7 +280,7 @@ export function ProfileScreen() {
                   borderRadius: radii.round,
                 }}>
                   <Text style={{ color: colors.sun, fontFamily: fonts.bodySemiBold, fontSize: 12 }}>
-                    {profile.selectedTitle}
+                    {COSMETICS.find((c) => c.id === profile.selectedTitle)?.label ?? profile.selectedTitle}
                   </Text>
                 </View>
               ) : (

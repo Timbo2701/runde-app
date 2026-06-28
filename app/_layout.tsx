@@ -30,8 +30,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded) return;
-    router.replace("/onboarding");
-    setChecked(true);
+    AsyncStorage.getItem("@runde:onboarding_done").then((done) => {
+      router.replace(done === "1" ? "/" : "/onboarding");
+      setChecked(true);
+    });
   }, [fontsLoaded]);
 
   if (!fontsLoaded || !checked) {
