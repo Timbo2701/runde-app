@@ -31,7 +31,9 @@ export default function RootLayout() {
   useEffect(() => {
     if (!fontsLoaded) return;
     AsyncStorage.getItem("@runde:onboarding_done").then((done) => {
-      router.replace(done === "1" ? "/" : "/onboarding");
+      // Only redirect if onboarding is not done — otherwise stay on current route
+      // (forced "/" redirect breaks deep links and direct URL navigation)
+      if (done !== "1") router.replace("/onboarding");
       setChecked(true);
     });
   }, [fontsLoaded]);
