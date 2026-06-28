@@ -14,18 +14,20 @@ const TOTAL_ROUNDS = 5;
 
 export function ResultsScreen() {
   const params = useLocalSearchParams<Record<string, string>>();
-  const { code = "RUND24", round = "1", mode = "klassiker" } = params;
+  const { code = "RUND24", round = "1", mode = "klassiker", playerWins = "0", botWins = "0" } = params;
 
   const roundNumber = parseInt(round, 10) || 1;
   const isLastRound = roundNumber >= TOTAL_ROUNDS;
 
-  const goNext = () => {
+  const goNext = (playerDelta: number, botDelta: number) => {
+    const newPlayerWins = String(parseInt(playerWins, 10) + playerDelta);
+    const newBotWins = String(parseInt(botWins, 10) + botDelta);
     if (isLastRound) {
-      router.replace({ pathname: "/final", params: { code } });
+      router.replace({ pathname: "/final", params: { code, playerWins: newPlayerWins, botWins: newBotWins } });
     } else {
       router.replace({
         pathname: "/play",
-        params: { code, round: String(roundNumber + 1), mode },
+        params: { code, round: String(roundNumber + 1), mode, playerWins: newPlayerWins, botWins: newBotWins },
       });
     }
   };

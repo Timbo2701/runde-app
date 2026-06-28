@@ -153,23 +153,31 @@ function ProgressBar({
 }
 
 export function FinalScreen() {
-  const { code = "RUND24" } = useLocalSearchParams<{ code?: string }>();
+  const { code = "RUND24", playerWins = "0", botWins = "0" } = useLocalSearchParams<{ code?: string; playerWins?: string; botWins?: string }>();
   const { name: profileName, photo: profilePhoto } = useProfile();
   const myName = profileName || "Du";
   const reducedMotion = useReducedMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const scores = [
-    { name: "Mika", points: 3, color: colors.stageCoral, avatar: MIKA_AVATAR },
-    { name: myName, points: 2, color: colors.stageBerry, avatar: profilePhoto ?? null },
-  ];
+  const myPoints = parseInt(playerWins, 10);
+  const mikaPoints = parseInt(botWins, 10);
+
+  const scores = myPoints >= mikaPoints
+    ? [
+        { name: myName, points: myPoints, color: colors.stageBerry, avatar: profilePhoto ?? null },
+        { name: "Mika", points: mikaPoints, color: colors.stageCoral, avatar: MIKA_AVATAR },
+      ]
+    : [
+        { name: "Mika", points: mikaPoints, color: colors.stageCoral, avatar: MIKA_AVATAR },
+        { name: myName, points: myPoints, color: colors.stageBerry, avatar: profilePhoto ?? null },
+      ];
   const winner = scores[0];
 
   const { roundsPlayed, wins, setProfile } = useProfile();
 
   useEffect(() => {
     // Track stats: +1 round played, +1 win if local player won
-    const playerWon = winner.name === myName;
+    const playerWon = myPoints > mikaPoints;
     const newWins = playerWon ? wins + 1 : wins;
     void setProfile({ roundsPlayed: roundsPlayed + 1, wins: newWins });
 

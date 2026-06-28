@@ -13,7 +13,7 @@ const BOT_NAME = "Mika";
 
 interface Props {
   params: Record<string, string | undefined>;
-  onNext: () => void;
+  onNext: (playerDelta: number, botDelta: number) => void;
   isLastRound: boolean;
   roundNumber: number;
   totalRounds: number;
@@ -327,7 +327,10 @@ export function BluffResult({ params, onNext, isLastRound, roundNumber, totalRou
       <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(740).duration(300)}>
         <BrandButton
           label={isLastRound ? "Gesamtergebnis 🏆" : `Frage ${roundNumber + 1} von ${totalRounds} →`}
-          onPress={onNext}
+          onPress={() => onNext(
+            !isTie && winner?.id === "player" ? 1 : 0,
+            !isTie && winner?.id === "bot" ? 1 : 0
+          )}
           tone="sun"
         />
       </Animated.View>

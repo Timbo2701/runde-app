@@ -225,7 +225,7 @@ function DrawingCard({
 
 interface Props {
   params: Record<string, string | undefined>;
-  onNext: () => void;
+  onNext: (playerDelta: number, botDelta: number) => void;
   isLastRound: boolean;
   roundNumber: number;
   totalRounds: number;
@@ -426,7 +426,10 @@ export function ZeichenVoteResult({
       <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(600).duration(280)}>
         <BrandButton
           label={isLastRound ? "Gesamtergebnis 🏆" : `Runde ${roundNumber + 1} →`}
-          onPress={onNext}
+          onPress={() => onNext(
+            !isTie && playerWins ? 1 : 0,
+            !isTie && !playerWins ? 1 : 0
+          )}
           tone="sun"
         />
       </Animated.View>

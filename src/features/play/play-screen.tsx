@@ -35,7 +35,9 @@ export function PlayScreen() {
     code = "RUND24",
     round = "1",
     mode = "klassiker",
-  } = useLocalSearchParams<{ code?: string; round?: string; mode?: string }>();
+    playerWins = "0",
+    botWins = "0",
+  } = useLocalSearchParams<{ code?: string; round?: string; mode?: string; playerWins?: string; botWins?: string }>();
 
   const roundNumber = Math.min(Math.max(parseInt(round, 10) || 1, 1), TOTAL_ROUNDS);
   const modeType = mode as GameModeType;
@@ -47,7 +49,7 @@ export function PlayScreen() {
   const goToResults = (params: Record<string, string>) => {
     router.replace({
       pathname: "/results",
-      params: { code, round: String(roundNumber), mode, ...params },
+      params: { code, round: String(roundNumber), mode, playerWins, botWins, ...params },
     });
   };
 

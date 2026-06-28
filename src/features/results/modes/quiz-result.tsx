@@ -13,7 +13,7 @@ const BOT_NAME = "Mika";
 
 interface Props {
   params: Record<string, string | undefined>;
-  onNext: () => void;
+  onNext: (playerDelta: number, botDelta: number) => void;
   isLastRound: boolean;
   roundNumber: number;
   totalRounds: number;
@@ -283,7 +283,10 @@ export function QuizResult({ params, onNext, isLastRound, roundNumber, totalRoun
       <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(620).duration(300)}>
         <BrandButton
           label={isLastRound ? "Gesamtergebnis 🏆" : `Frage ${roundNumber + 1} von ${totalRounds} →`}
-          onPress={onNext}
+          onPress={() => onNext(
+            playerCorrect && !botCorrect ? 1 : 0,
+            botCorrect && !playerCorrect ? 1 : 0
+          )}
           tone="sun"
         />
       </Animated.View>

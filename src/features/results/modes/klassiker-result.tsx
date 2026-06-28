@@ -21,7 +21,7 @@ function countVotes(votes: string[]): Record<string, number> {
 
 interface Props {
   params: Record<string, string | undefined>;
-  onNext: () => void;
+  onNext: (playerDelta: number, botDelta: number) => void;
   isLastRound: boolean;
   roundNumber: number;
   totalRounds: number;
@@ -148,7 +148,10 @@ export function KlassikerResult({ params, onNext, isLastRound, roundNumber, tota
       <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(550).duration(300)} style={{ gap: 12 }}>
         <BrandButton
           label={isLastRound ? "Gesamtergebnis 🏆" : `Frage ${roundNumber + 1} von ${totalRounds} →`}
-          onPress={onNext}
+          onPress={() => onNext(
+            !isTie && winner === myName ? 1 : 0,
+            !isTie && winner === BOT_NAME ? 1 : 0
+          )}
           tone="sun"
         />
       </Animated.View>
