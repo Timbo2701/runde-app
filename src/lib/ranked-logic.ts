@@ -92,32 +92,36 @@ export function getBotResult(
   correctNumber?: number
 ): { correct: boolean; points: number; answerMs: number } {
   const roll = Math.random();
-  const answerMs = Math.floor(Math.random() * 6000) + 2000;
 
   if (roundType === "speed_choice") {
     const correct = roll < 0.65;
-    return { correct, points: correct ? 2 : 0, answerMs };
+    const answerMs = correct
+      ? Math.floor(Math.random() * 7000) + 1500
+      : Math.floor(Math.random() * 5000) + 4000;
+    const points = correct ? (answerMs < 2000 ? 5 : answerMs < 5000 ? 4 : 3) : 0;
+    return { correct, points, answerMs };
   }
   if (roundType === "bluff_tap") {
     const correct = roll < 0.55;
-    return { correct, points: correct ? 2 : 0, answerMs };
+    const answerMs = Math.floor(Math.random() * 5000) + 2000;
+    return { correct, points: correct ? 3 : 0, answerMs };
   }
-  // close_guess
+  // close_guess: accuracy only, no time factor
   const ref = correctNumber ?? 100;
-  const deviation = (Math.random() * 0.4 - 0.2) * ref; // ±20%
+  const deviation = (Math.random() * 0.6 - 0.3) * ref;
   const botAnswer = Math.round(ref + deviation);
-  const pctOff = Math.abs(botAnswer - ref) / ref;
-  let points = 0;
-  if (pctOff <= 0.1) points = 3;
-  else if (pctOff <= 0.25) points = 2;
-  else if (pctOff <= 0.5) points = 1;
-  return { correct: pctOff <= 0.1, points, answerMs };
+  const points = calcCloseGuessPoints(botAnswer, ref);
+  const answerMs = Math.floor(Math.random() * 8000) + 4000;
+  return { correct: points >= 3, points, answerMs };
 }
 
 export function calcCloseGuessPoints(playerAnswer: number, correct: number): number {
-  const pct = Math.abs(playerAnswer - correct) / correct;
-  if (pct <= 0.05) return 3;
-  if (pct <= 0.15) return 2;
-  if (pct <= 0.3) return 1;
+  if (correct === 0) return playerAnswer === 0 ? 5 : 0;
+  const pct = Math.abs(playerAnswer - correct) / Math.abs(correct);
+  if (pct === 0) return 5;
+  if (pct <= 0.03) return 4;
+  if (pct <= 0.10) return 3;
+  if (pct <= 0.25) return 2;
+  if (pct <= 0.50) return 1;
   return 0;
 }

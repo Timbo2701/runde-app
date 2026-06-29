@@ -3,7 +3,7 @@ import type { PropsWithChildren } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import { ensureUserBootstrap, fetchProfile, updateProfileRecord } from "@/services/supabase-data";
+import { ensureUserBootstrap, fetchProfile, updateLastSeen, updateProfileRecord } from "@/services/supabase-data";
 import type { ProfileRecord } from "@/types/supabase";
 
 type AuthContextValue = {
@@ -38,6 +38,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return null;
     }
     await ensureUserBootstrap();
+    void updateLastSeen(nextSession.user.id).catch(() => {});
     const nextProfile = await fetchProfile(nextSession.user.id);
     setProfile(nextProfile);
     return nextProfile;

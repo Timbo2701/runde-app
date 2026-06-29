@@ -392,6 +392,104 @@ export async function saveSelectedCosmetics(
   if (saveError) throw saveError;
 }
 
+// ── Friends ───────────────────────────────────────────────────────────────────
+
+export type FriendRecord = {
+  friendshipId: string;
+  friendId: string;
+  displayName: string;
+  avatarInitials: string;
+  isOnline: boolean;
+  lastSeenAt: string | null;
+  status: "accepted" | "pending";
+  isRequester: boolean;
+};
+
+export type UserSearchResult = {
+  id: string;
+  displayName: string;
+  avatarInitials: string;
+};
+
+export async function fetchFriends(userId: string): Promise<FriendRecord[]> {
+  const { data, error } = await getSupabase()
+    .from("friendships")
+    .select("id, requester_id, addressee_id, status, profiles!friendships_addressee_id_fkey(id,display_name,avatar_initials,is_online,last_seen_at), profiles!friendships_requester_id_fkey(id,display_name,avatar_initials,is_online,last_seen_at)")
+    .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
+    .in("status", ["accepted", "pending"]);
+  if (error) throw error;
+  return (data ?? []).map((value) => {
+    const row = asObject(value);
+    const isRequester = asString(row.requester_id) === userId;
+    const friendProfile = asObject(isRequester ? row["profiles!friendships_addressee_id_fkey"] : row["profiles!friendships_requester_id_fkey"]);
+    return {
+      friendshipId: asString(row.id),
+      friendId: asString(friendProfile.id),
+      displayName: asString(friendProfile.display_name, "Runde Spieler"),
+      avatarInitials: asString(friendProfile.avatar_initials, "R"),
+      isOnline: asBoolean(friendProfile.is_online),
+      lastSeenAt: typeof friendProfile.last_seen_at === "string" ? friendProfile.last_seen_at : null,
+      status: asString(row.status) as "accepted" | "pending",
+      isRequester,
+    };
+  });
+}
+
+export async function searchUsers(query: string, currentUserId: string): Promise<UserSearchResult[]> {
+  if (query.trim().length < 2) return [];
+  const { data, error } = await getSupabase()
+    .from("profiles")
+    .select("id, display_name, avatar_initials")
+    .ilike("display_name", `%${query.trim()}%`)
+    .neq("id", currentUserId)
+    .eq("is_bot", false)
+    .limit(10);
+  if (error) throw error;
+  return (data ?? []).map((value) => {
+    const row = asObject(value);
+    return {
+      id: asString(row.id),
+      displayName: asString(row.display_name, "Runde Spieler"),
+      avatarInitials: asString(row.avatar_initials, "R"),
+    };
+  });
+}
+
+export async function sendFriendRequest(requesterId: string, addresseeId: string): Promise<void> {
+  const { error } = await getSupabase()
+    .from("friendships")
+    .insert({ requester_id: requesterId, addressee_id: addresseeId, status: "pending" });
+  if (error) throw error;
+}
+
+export async function respondFriendRequest(friendshipId: string, accept: boolean): Promise<void> {
+  if (accept) {
+    const { error } = await getSupabase()
+      .from("friendships")
+      .update({ status: "accepted", updated_at: new Date().toISOString() })
+      .eq("id", friendshipId);
+    if (error) throw error;
+  } else {
+    const { error } = await getSupabase()
+      .from("friendships")
+      .delete()
+      .eq("id", friendshipId);
+    if (error) throw error;
+  }
+}
+
+export async function removeFriend(friendshipId: string): Promise<void> {
+  const { error } = await getSupabase().from("friendships").delete().eq("id", friendshipId);
+  if (error) throw error;
+}
+
+export async function updateLastSeen(userId: string): Promise<void> {
+  await getSupabase()
+    .from("profiles")
+    .update({ last_seen_at: new Date().toISOString(), is_online: true })
+    .eq("id", userId);
+}
+
 export type RankedMatchSubmission = {
   profile: RankedProfile;
   lpDelta: number;

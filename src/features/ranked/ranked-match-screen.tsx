@@ -346,18 +346,17 @@ export function RankedMatchScreen() {
     if (roundType === "speed_choice" && currentQuestion) {
       playerCorrect = playerAnswer === currentQuestion.correctOption;
       if (playerCorrect) {
-        const timeBonus = answerMs < 3000 ? 2 : answerMs < 6000 ? 1 : 0;
-        playerPoints = 3 + timeBonus;
+        playerPoints = answerMs < 2000 ? 5 : answerMs < 5000 ? 4 : 3;
       }
     } else if (roundType === "close_guess" && currentQuestion) {
       const num = typeof playerAnswer === "string" ? parseInt(playerAnswer, 10) : 0;
       if (!isNaN(num) && playerAnswer !== null) {
         playerPoints = calcCloseGuessPoints(num, currentQuestion.correctNumber ?? 0);
-        playerCorrect = playerPoints >= 2;
+        playerCorrect = playerPoints >= 3;
       }
     } else if (roundType === "bluff_tap" && currentQuestion) {
       playerCorrect = playerAnswer === currentQuestion.realStatementIndex;
-      playerPoints = playerCorrect ? 2 : 0;
+      playerPoints = playerCorrect ? 3 : 0;
     }
 
     if (playerPoints > 0) {
@@ -476,7 +475,7 @@ export function RankedMatchScreen() {
         {/* ── ROUND INTRO ── */}
         {phase === "round_intro" && (
           <Animated.View
-            entering={reducedMotion ? undefined : ZoomIn.duration(280).springify().damping(12)}
+            entering={reducedMotion ? undefined : FadeInDown.duration(300)}
             style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 20 }}
           >
             <Text style={{ fontSize: 52 }}>{ROUND_EMOJIS[roundIndex]}</Text>
@@ -788,7 +787,7 @@ export function RankedMatchScreen() {
             >
               {/* Result icon */}
               <Animated.Text
-                entering={reducedMotion ? undefined : ZoomIn.springify().damping(10)}
+                entering={reducedMotion ? undefined : ZoomIn.duration(280).springify().damping(22).stiffness(120)}
                 style={{ fontSize: 64 }}
               >
                 {last.playerCorrect || won ? "⚡" : "💨"}

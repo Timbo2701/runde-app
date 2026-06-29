@@ -114,7 +114,7 @@ export function HomeScreen() {
         </Pressable>
       </View>
     </StageScreen>
-    <BottomNav activeTab="home" />
+    <BottomNav activeTab="party" />
     </View>
   );
 }
