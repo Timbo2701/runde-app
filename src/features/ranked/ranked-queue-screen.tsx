@@ -19,6 +19,7 @@ import { colors, fonts, radii } from "@/design/tokens";
 import { getFullRankLabel, RANK_CONFIG, getWinrate } from "@/lib/ranked-logic";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useRanked } from "@/lib/ranked-context";
+import { useAuth } from "@/lib/auth-context";
 import type { RankedOpponent } from "@/types/ranked";
 import { useRankedBots } from "@/lib/supabase-hooks";
 import { DataStatePanel } from "@/ui/primitives/data-state-panel";
@@ -102,6 +103,8 @@ type Phase = "searching" | "found" | "countdown";
 export function RankedQueueScreen() {
   const reducedMotion = useReducedMotion();
   const { rankedProfile } = useRanked();
+  const { profile: authProfile } = useAuth();
+  const playerInitials = authProfile?.avatarInitials ?? authProfile?.displayName?.slice(0, 2).toUpperCase() ?? "Du";
   const { data: rankedBots, loading: rankedBotsLoading, error: rankedBotsError, refresh } = useRankedBots();
   const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>("searching");
@@ -326,7 +329,9 @@ export function RankedQueueScreen() {
                     shadowOpacity: 0.6,
                     shadowRadius: 10,
                   }}>
-                    <Text style={{ fontSize: 30 }}>👤</Text>
+                    <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: playerInitials.length > 2 ? 16 : 22 }}>
+                      {playerInitials}
+                    </Text>
                   </View>
                   <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 16 }}>
                     Du
@@ -380,7 +385,9 @@ export function RankedQueueScreen() {
                     shadowOpacity: 0.5,
                     shadowRadius: 10,
                   }}>
-                    <Text style={{ fontSize: 34 }}>{opponent.avatarEmoji}</Text>
+                    <Text style={{ color: oppConfig.color, fontFamily: fonts.displayExtraBold, fontSize: opponent.avatarEmoji.length > 2 ? 16 : 22 }}>
+                      {opponent.avatarEmoji}
+                    </Text>
                   </View>
                   <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 16 }}>
                     {opponent.name}

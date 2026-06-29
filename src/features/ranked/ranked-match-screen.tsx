@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, radii } from "@/design/tokens";
 import { getBotResult, calcCloseGuessPoints, RANK_CONFIG } from "@/lib/ranked-logic";
 import { useRanked } from "@/lib/ranked-context";
+import { useAuth } from "@/lib/auth-context";
 import { useRankedBots, useRankedQuestions } from "@/lib/supabase-hooks";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import type { MatchResult, MatchRoundResult, MindClashQuestion } from "@/types/ranked";
@@ -115,11 +116,12 @@ function PointsPop({ points, visible }: { points: number; visible: boolean }) {
 // ── VS Header ────────────────────────────────────────────────────────────────
 
 function VSHeader({
-  playerScore, botScore, opponentName, opponentEmoji, oppColor,
+  playerScore, botScore, playerInitials, opponentName, opponentInitials, oppColor,
   roundIndex, botAnswered, answerSubmitted,
 }: {
   playerScore: number; botScore: number;
-  opponentName: string; opponentEmoji: string; oppColor: string;
+  playerInitials: string;
+  opponentName: string; opponentInitials: string; oppColor: string;
   roundIndex: number; botAnswered: boolean; answerSubmitted: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -159,7 +161,9 @@ function VSHeader({
               borderWidth: playerLeading ? 2 : 1,
               borderColor: playerLeading ? colors.sun : colors.whiteSoft,
             }}>
-              <Text style={{ fontSize: 18 }}>👤</Text>
+              <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: playerInitials.length > 2 ? 10 : 14 }}>
+                {playerInitials}
+              </Text>
             </View>
             <View>
               <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 14 }}>Du</Text>
@@ -218,7 +222,9 @@ function VSHeader({
               borderWidth: !playerLeading && !tied ? 2 : 1,
               borderColor: !playerLeading && !tied ? oppColor : "rgba(255,255,255,0.3)",
             }}>
-              <Text style={{ fontSize: 20 }}>{opponentEmoji}</Text>
+              <Text style={{ color: oppColor, fontFamily: fonts.displayExtraBold, fontSize: opponentInitials.length > 2 ? 10 : 14 }}>
+                {opponentInitials}
+              </Text>
             </View>
           </View>
         </View>
@@ -233,6 +239,8 @@ export function RankedMatchScreen() {
   const { opponentId } = useLocalSearchParams<{ opponentId: string }>();
   const reducedMotion = useReducedMotion();
   const { rankedProfile } = useRanked();
+  const { profile: authProfile } = useAuth();
+  const playerInitials = authProfile?.avatarInitials ?? authProfile?.displayName?.slice(0, 2).toUpperCase() ?? "Du";
   const { data: rankedBots, loading: botsLoading, error: botsError, refresh: refreshBots } = useRankedBots();
   const { data: questionPool, loading: questionsLoading, error: questionsError, refresh: refreshQuestions } = useRankedQuestions();
   const opponent = rankedBots.find((bot) => bot.id === opponentId);
@@ -287,6 +295,8 @@ export function RankedMatchScreen() {
   }, [questionPool, questionsError, questionsLoading]);
 
   // Round intro → playing
+  // NOTE: currentQuestion and opponent are in deps so the effect re-fires
+  // once questions finish loading (phase/roundIndex alone don't change then).
   useEffect(() => {
     if (phase !== "round_intro" || !currentQuestion || !opponent) return;
     timerRef.current = setTimeout(() => {
@@ -302,7 +312,7 @@ export function RankedMatchScreen() {
       setShowPointsPop(false);
     }, 2000);
     return clearTimer;
-  }, [phase, roundIndex]);
+  }, [phase, roundIndex, currentQuestion, opponent]);
 
   // Countdown
   useEffect(() => {
@@ -451,8 +461,9 @@ export function RankedMatchScreen() {
       <VSHeader
         playerScore={playerScore}
         botScore={botScore}
+        playerInitials={playerInitials}
         opponentName={opponent.name}
-        opponentEmoji={opponent.avatarEmoji}
+        opponentInitials={opponent.avatarEmoji}
         oppColor={oppConfig.color}
         roundIndex={roundIndex}
         botAnswered={botAnswered}
