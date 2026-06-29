@@ -325,7 +325,7 @@ export function RankedMatchScreen() {
   // Bot
   useEffect(() => {
     if (phase !== "playing" || !currentQuestion) return;
-    const bot = getBotResult(roundType, currentQuestion.correctNumber);
+    const bot = getBotResult(roundType, currentQuestion.correctNumber, opponent?.tier ?? "bronze");
     const delay = Math.min(bot.answerMs, ROUND_TIMERS[roundIndex] * 950);
     timerRef.current = setTimeout(() => {
       setBotAnswered(true);
@@ -380,7 +380,7 @@ export function RankedMatchScreen() {
       finalize(botResult);
     } else {
       setTimeout(() => {
-        const bot = getBotResult(roundType, currentQuestion?.correctNumber);
+        const bot = getBotResult(roundType, currentQuestion?.correctNumber, opponent?.tier ?? "bronze");
         setBotResult(bot);
         finalize(bot);
       }, 900);

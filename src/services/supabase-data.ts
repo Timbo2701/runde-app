@@ -478,6 +478,52 @@ export async function respondFriendRequest(friendshipId: string, accept: boolean
   }
 }
 
+// ── Party Questions ───────────────────────────────────────────────────────────
+
+export type PartyQuestion = {
+  id: string;
+  mode: string;
+  category: string | null;
+  prompt: string;
+  options: string[] | null;
+  correctAnswer: Record<string, unknown> | null;
+  numericAnswer: number | null;
+  difficulty: number;
+};
+
+function mapPartyQuestion(value: unknown): PartyQuestion {
+  const row = asObject(value);
+  const rawOptions = row.options;
+  const options = Array.isArray(rawOptions)
+    ? rawOptions.filter((item): item is string => typeof item === "string")
+    : null;
+  return {
+    id: asString(row.id),
+    mode: asString(row.mode),
+    category: asString(row.category) || null,
+    prompt: asString(row.prompt),
+    options: options && options.length > 0 ? options : null,
+    correctAnswer: row.correct_answer && typeof row.correct_answer === "object" && !Array.isArray(row.correct_answer)
+      ? (row.correct_answer as Record<string, unknown>)
+      : null,
+    numericAnswer: typeof row.numeric_answer === "number" ? row.numeric_answer : null,
+    difficulty: asNumber(row.difficulty, 1),
+  };
+}
+
+export async function fetchPartyQuestions(mode: string, limit = 20): Promise<PartyQuestion[]> {
+  const { data, error } = await getSupabase()
+    .from("party_questions")
+    .select("*")
+    .eq("mode", mode)
+    .eq("is_active", true)
+    .limit(50); // Fetch more, shuffle client-side
+  if (error) throw error;
+  // Shuffle and limit
+  const shuffled = (data ?? []).sort(() => Math.random() - 0.5).slice(0, limit);
+  return shuffled.map(mapPartyQuestion);
+}
+
 export async function removeFriend(friendshipId: string): Promise<void> {
   const { error } = await getSupabase().from("friendships").delete().eq("id", friendshipId);
   if (error) throw error;

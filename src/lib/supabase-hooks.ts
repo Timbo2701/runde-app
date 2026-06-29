@@ -7,11 +7,13 @@ import {
   fetchCosmeticOwnership,
   fetchLeaderboard,
   fetchMissions,
+  fetchPartyQuestions,
   fetchRankedBots,
   fetchRankedQuestions,
   fetchSettings,
   updateSettingsRecord,
 } from "@/services/supabase-data";
+import type { PartyQuestion } from "@/services/supabase-data";
 import type { BattlePassReward, DailyMission, LeaderboardEntry, MindClashQuestion, RankedOpponent } from "@/types/ranked";
 import type { BattlePassProgressRecord, CosmeticOwnershipRecord, PlayerSettingsRecord } from "@/types/supabase";
 
@@ -135,6 +137,12 @@ export function usePlayerSettings() {
     await updateSettingsRecord(userId, settings);
   }, [userId]);
   return { ...remote, save };
+}
+
+export function usePartyQuestions(mode: string) {
+  const { session } = useAuth();
+  const load = useCallback(() => fetchPartyQuestions(mode), [mode]);
+  return useRemoteData(load, [] as PartyQuestion[], Boolean(session));
 }
 
 export function useCosmetics() {

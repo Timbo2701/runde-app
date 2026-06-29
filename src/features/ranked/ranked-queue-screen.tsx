@@ -20,9 +20,50 @@ import { getFullRankLabel, RANK_CONFIG, getWinrate } from "@/lib/ranked-logic";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useRanked } from "@/lib/ranked-context";
 import { useAuth } from "@/lib/auth-context";
-import type { RankedOpponent } from "@/types/ranked";
+import type { RankedOpponent, RankedProfile } from "@/types/ranked";
 import { useRankedBots } from "@/lib/supabase-hooks";
 import { DataStatePanel } from "@/ui/primitives/data-state-panel";
+
+// ── Smart bot selection ────────────────────────────────────────────────────────
+
+const TIER_ORDER = ["bronze", "silver", "gold", "neon", "elite", "legend"] as const;
+
+function selectBot(
+  bots: RankedOpponent[],
+  profile: RankedProfile,
+  lastOpponentId: string | null
+): RankedOpponent {
+  const tierIdx = TIER_ORDER.indexOf(profile.tier as typeof TIER_ORDER[number]);
+  const lpInDiv = profile.lp % 200;
+  const nearPromotion = lpInDiv >= 160 || profile.lp >= 560;
+  const onWinStreak = profile.winStreak >= 3;
+
+  // Base pool: same tier
+  let candidates = bots.filter((b) => b.tier === profile.tier);
+
+  // Near promotion: add lowest division of next tier
+  if (nearPromotion && tierIdx < TIER_ORDER.length - 1) {
+    const nextTier = TIER_ORDER[tierIdx + 1];
+    const nextTierBots = bots.filter((b) => b.tier === nextTier && b.division === 3);
+    candidates = [...candidates, ...nextTierBots];
+  }
+
+  // Win streak: prefer bots in same or higher division (slightly stronger)
+  if (onWinStreak) {
+    const stronger = candidates.filter(
+      (b) => b.tier === profile.tier && b.division <= profile.division
+    );
+    if (stronger.length > 0) candidates = stronger;
+  }
+
+  // Avoid repeat opponent
+  const noRepeat = candidates.filter((b) => b.id !== lastOpponentId);
+  const pool = noRepeat.length > 0 ? noRepeat : candidates;
+
+  // Fallback to all bots
+  if (pool.length === 0) return bots[Math.floor(Math.random() * bots.length)];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 // ── Pulse ring (stays separate component – hooks rule) ────────────────────────
 
@@ -110,21 +151,22 @@ export function RankedQueueScreen() {
   const [phase, setPhase] = useState<Phase>("searching");
   const [opponent, setOpponent] = useState<RankedOpponent | null>(null);
   const [countdown, setCountdown] = useState(3);
+  const lastOpponentIdRef = useRef<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearTimer = () => { if (timerRef.current) clearTimeout(timerRef.current); };
 
-  // Step 1: find opponent
+  // Step 1: find opponent using smart selection
   useEffect(() => {
     if (rankedBotsLoading || rankedBotsError || rankedBots.length === 0) return;
     timerRef.current = setTimeout(() => {
-      const sameTier = rankedBots.filter((bot) => bot.tier === rankedProfile.tier);
-      const pool = sameTier.length > 0 ? sameTier : rankedBots;
-      setOpponent(pool[Math.floor(Math.random() * pool.length)] ?? null);
+      const selected = selectBot(rankedBots, rankedProfile, lastOpponentIdRef.current);
+      lastOpponentIdRef.current = selected.id;
+      setOpponent(selected);
       setPhase("found");
     }, 1400 + Math.random() * 800);
     return clearTimer;
-  }, [rankedBots, rankedBotsError, rankedBotsLoading, rankedProfile.tier]);
+  }, [rankedBots, rankedBotsError, rankedBotsLoading, rankedProfile]);
 
   // Step 2: show VS card for 2s, then countdown
   useEffect(() => {

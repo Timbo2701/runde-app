@@ -89,29 +89,40 @@ export function getWinrate(wins: number, losses: number): number {
 
 export function getBotResult(
   roundType: MindClashRoundType,
-  correctNumber?: number
+  correctNumber?: number,
+  botTier: RankTier = "bronze"
 ): { correct: boolean; points: number; answerMs: number } {
+  // Accuracy and speed scale with tier
+  const tierConfig: Record<RankTier, { accuracy: number; minMs: number; maxMs: number }> = {
+    bronze: { accuracy: 0.52, minMs: 1800, maxMs: 3500 },
+    silver: { accuracy: 0.62, minMs: 1300, maxMs: 2800 },
+    gold:   { accuracy: 0.70, minMs: 900,  maxMs: 2200 },
+    neon:   { accuracy: 0.77, minMs: 700,  maxMs: 1700 },
+    elite:  { accuracy: 0.84, minMs: 500,  maxMs: 1400 },
+    legend: { accuracy: 0.90, minMs: 350,  maxMs: 1100 },
+  };
+  const cfg = tierConfig[botTier];
   const roll = Math.random();
 
   if (roundType === "speed_choice") {
-    const correct = roll < 0.65;
-    const answerMs = correct
-      ? Math.floor(Math.random() * 7000) + 1500
-      : Math.floor(Math.random() * 5000) + 4000;
+    const correct = roll < cfg.accuracy;
+    const answerMs = Math.floor(cfg.minMs + Math.random() * (cfg.maxMs - cfg.minMs));
     const points = correct ? (answerMs < 2000 ? 5 : answerMs < 5000 ? 4 : 3) : 0;
     return { correct, points, answerMs };
   }
   if (roundType === "bluff_tap") {
-    const correct = roll < 0.55;
-    const answerMs = Math.floor(Math.random() * 5000) + 2000;
+    // bluff_tap is slightly harder – use slightly reduced accuracy
+    const correct = roll < cfg.accuracy * 0.85;
+    const answerMs = Math.floor(cfg.minMs + Math.random() * (cfg.maxMs - cfg.minMs));
     return { correct, points: correct ? 3 : 0, answerMs };
   }
-  // close_guess: accuracy only, no time factor
+  // close_guess: accuracy affects deviation range; stronger bots guess closer
   const ref = correctNumber ?? 100;
-  const deviation = (Math.random() * 0.6 - 0.3) * ref;
+  const maxDeviation = (1 - cfg.accuracy) * 0.8; // legend deviates ~8%, bronze ~38%
+  const deviation = (Math.random() * maxDeviation * 2 - maxDeviation) * ref;
   const botAnswer = Math.round(ref + deviation);
   const points = calcCloseGuessPoints(botAnswer, ref);
-  const answerMs = Math.floor(Math.random() * 8000) + 4000;
+  const answerMs = Math.floor(cfg.minMs + Math.random() * (cfg.maxMs - cfg.minMs));
   return { correct: points >= 3, points, answerMs };
 }
 
