@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { fonts, radii, spacing } from "@/design/tokens";
 import { RANK_CONFIG, getDivisionLabel, getTierLabel } from "@/lib/ranked-logic";
 import type { RankDivision, RankTier } from "@/types/ranked";
 

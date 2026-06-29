@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Pressable, Share, Switch, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
@@ -10,9 +10,11 @@ import { useAchievements } from "@/lib/use-achievements";
 import { getInitials } from "@/lib/room";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { usePlayerSettings } from "@/lib/supabase-hooks";
 import type { Achievement } from "@/types/achievements";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 import { TextField } from "@/ui/primitives/text-field";
 
@@ -135,6 +137,8 @@ export function ProfileScreen() {
     vibrieren: true,
     bewegungseffekte: true,
   });
+  const remoteSettings = usePlayerSettings();
+  const achievementsState = useAchievements();
   const reducedMotion = useReducedMotion();
 
   const pickPhoto = async () => {
@@ -155,19 +159,54 @@ export function ProfileScreen() {
     await Share.share({ message: `Spiel Runde mit mir! Mein Name: ${displayName}` });
   };
 
+  useEffect(() => {
+    const timer = setTimeout(() => setSettings({
+        musik: remoteSettings.data.musicEnabled,
+        soundeffekte: remoteSettings.data.soundEnabled,
+        vibrieren: remoteSettings.data.hapticsEnabled,
+        bewegungseffekte: remoteSettings.data.animationsEnabled,
+      }), 0);
+    return () => clearTimeout(timer);
+  }, [remoteSettings.data]);
+
   const toggleSetting = (key: keyof Settings) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      void remoteSettings.save({
+        musicEnabled: next.musik,
+        soundEnabled: next.soundeffekte,
+        hapticsEnabled: next.vibrieren,
+        animationsEnabled: next.bewegungseffekte,
+      });
+      return next;
+    });
   };
 
-  // Mock stats
+  const dataLoading = !profile.loaded || remoteSettings.loading || achievementsState.loading;
+  const dataError = profile.error ?? remoteSettings.error ?? achievementsState.error;
+
+  if (dataLoading || dataError) {
+    return (
+      <StageScreen stageColor={colors.stageCoral} pattern="dots">
+        <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.canGoBack() ? router.back() : router.replace("/")} />
+        <DataStatePanel
+          title={dataLoading ? "Profil wird geladen" : "Profildaten nicht erreichbar"}
+          message={dataLoading ? "Profil, Statistiken und Achievements kommen direkt aus Supabase." : dataError ?? "Bitte versuche es erneut."}
+          loading={dataLoading}
+          onRetry={dataLoading ? undefined : () => { void profile.refresh(); void remoteSettings.refresh(); void achievementsState.refresh(); }}
+        />
+      </StageScreen>
+    );
+  }
+
   const statsRows = [
     { emoji: "🎮", label: "Runden", value: String(profile.roundsPlayed || 0) },
     { emoji: "🏆", label: "Siege", value: String(profile.wins || 0) },
-    { emoji: "⚡", label: "Lieblingsmodus", value: "Klassiker" },
-    { emoji: "🎯", label: "Beste Kategorie", value: "Schätzen" },
+    { emoji: "⚡", label: "Lieblingsmodus", value: profile.favoriteMode ?? "Noch offen" },
+    { emoji: "🎯", label: "Beste Kategorie", value: profile.bestCategory ?? "Noch offen" },
   ];
 
-  const { achievements } = useAchievements();
+  const { achievements } = achievementsState;
   const previewAchievements = achievements.slice(0, 4);
   const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
 
@@ -269,7 +308,7 @@ export function ProfileScreen() {
               <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 28 }}>
                 {name || "Dein Name"}
               </Text>
-              {/* Titel-Badge (mock) */}
+              {/* Persistierter Titel aus selected_cosmetics */}
               {profile.selectedTitle ? (
                 <View style={{
                   backgroundColor: "rgba(255,216,77,0.2)",

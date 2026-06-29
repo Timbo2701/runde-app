@@ -5,7 +5,6 @@ import { useEffect } from "react";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { useRanked } from "@/lib/ranked-context";
-import { MOCK_DAILY_MISSIONS } from "@/data/ranked-mock-data";
 import { getFullRankLabel, getWinrate, RANK_CONFIG } from "@/lib/ranked-logic";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -16,6 +15,8 @@ import { RankBadge } from "@/features/ranked/components/rank-badge";
 import { LpProgress } from "@/features/ranked/components/lp-progress";
 import { MissionCard } from "@/features/ranked/components/mission-card";
 import { BattlePassTeaser } from "@/features/ranked/components/battle-pass-teaser";
+import { useBattlePass, useBattlePassRewards, useMissions } from "@/lib/supabase-hooks";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 
 function PlayButton({ onPress, reducedMotion }: { onPress: () => void; reducedMotion: boolean }) {
   const scale = useSharedValue(1);
@@ -70,8 +71,41 @@ function PlayButton({ onPress, reducedMotion }: { onPress: () => void; reducedMo
 }
 
 export function RankedHomeScreen() {
-  const { rankedProfile } = useRanked();
+  const { rankedProfile, loaded, error: rankedError, refresh: refreshRanked } = useRanked();
+  const { data: missions, loading: missionsLoading, error: missionsError, refresh: refreshMissions } = useMissions();
+  const battlePass = useBattlePass();
+  const passRewards = useBattlePassRewards();
   const reducedMotion = useReducedMotion();
+
+  if (!loaded || missionsLoading || battlePass.loading || passRewards.loading) {
+    return (
+      <View style={{ flex: 1 }}>
+        <StageScreen stageColor={colors.stageGrapeDeep} pattern="rings">
+          <AppHeader title="Ranked Arena" />
+          <DataStatePanel title="Arena wird geladen" message="Rang, Season und Missionen kommen direkt aus Supabase." loading />
+        </StageScreen>
+        <BottomNav activeTab="ranked" />
+      </View>
+    );
+  }
+
+  const dataError = rankedError ?? missionsError ?? battlePass.error ?? passRewards.error ?? (!battlePass.data ? "Für die aktive Season fehlt der Battle Pass." : null);
+  if (dataError) {
+    return (
+      <View style={{ flex: 1 }}>
+        <StageScreen stageColor={colors.stageGrapeDeep} pattern="rings">
+          <AppHeader title="Ranked Arena" />
+          <DataStatePanel
+            title="Ranked-Daten nicht erreichbar"
+            message={dataError}
+            onRetry={() => { void refreshRanked(); void refreshMissions(); void battlePass.refresh(); void passRewards.refresh(); }}
+          />
+        </StageScreen>
+        <BottomNav activeTab="ranked" />
+      </View>
+    );
+  }
+
   const config = RANK_CONFIG[rankedProfile.tier];
   const winrate = getWinrate(rankedProfile.wins, rankedProfile.losses);
 
@@ -230,7 +264,7 @@ export function RankedHomeScreen() {
             </View>
           </View>
 
-          {MOCK_DAILY_MISSIONS.slice(0, 2).map((mission) => (
+          {missions.slice(0, 2).map((mission) => (
             <MissionCard key={mission.id} mission={mission} />
           ))}
         </Animated.View>
@@ -241,9 +275,11 @@ export function RankedHomeScreen() {
           style={{ marginTop: spacing.xl }}
         >
           <BattlePassTeaser
-            level={rankedProfile.battlePassLevel}
-            xp={rankedProfile.battlePassXp}
+            level={battlePass.data?.level ?? rankedProfile.battlePassLevel}
+            xp={battlePass.data?.xp ?? rankedProfile.battlePassXp}
             maxXp={1000}
+            maxLevel={battlePass.data?.maxLevel ?? 0}
+            rewards={passRewards.data}
           />
         </Animated.View>
 

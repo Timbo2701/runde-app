@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import Animated, {
   FadeIn,
@@ -14,13 +14,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { getFullRankLabel, RANK_CONFIG, applyLpChange, getLpWithinDivision, getWinrate } from "@/lib/ranked-logic";
+import { colors, fonts, radii } from "@/design/tokens";
+import { getFullRankLabel, RANK_CONFIG, getLpWithinDivision, getWinrate } from "@/lib/ranked-logic";
 import { useRanked } from "@/lib/ranked-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { ConfettiSystem } from "@/ui/primitives/confetti-system";
 import { RankBadge } from "@/features/ranked/components/rank-badge";
 import type { MatchResult } from "@/types/ranked";
+import type { RankedMatchSubmission } from "@/services/supabase-data";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 
 // ── Animated LP bar ───────────────────────────────────────────────────────────
 
@@ -123,11 +125,13 @@ function RoundRow({ label, playerPts, botPts, playerCorrect, index }: {
 
 export function RankedResultScreen() {
   const { result: resultParam } = useLocalSearchParams<{ result: string }>();
-  const { rankedProfile, applyMatchResult } = useRanked();
+  const { applyMatchResult } = useRanked();
   const reducedMotion = useReducedMotion();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const applied = useRef(false);
+  const [submission, setSubmission] = useState<RankedMatchSubmission | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const result: MatchResult | null = (() => {
     try { return JSON.parse(decodeURIComponent(resultParam ?? "")) as MatchResult; }
@@ -137,7 +141,9 @@ export function RankedResultScreen() {
   useEffect(() => {
     if (result && !applied.current) {
       applied.current = true;
-      void applyMatchResult(result);
+      applyMatchResult(result)
+        .then(setSubmission)
+        .catch((error) => setSaveError(error instanceof Error ? error.message : "Ergebnis konnte nicht gespeichert werden."));
     }
   }, []);
 
@@ -149,12 +155,30 @@ export function RankedResultScreen() {
     );
   }
 
-  const lpChanges = applyLpChange(rankedProfile, result.lpDelta);
+  if (!submission || saveError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.stageGrapeDeep, justifyContent: "center", paddingHorizontal: 24 }}>
+        <DataStatePanel
+          title={saveError ? "Ergebnis nicht gespeichert" : "Ergebnis wird gespeichert"}
+          message={saveError ?? "LP, Matchverlauf und Fortschritt werden in Supabase aktualisiert."}
+          loading={!saveError}
+          onRetry={saveError ? () => {
+            setSaveError(null);
+            applyMatchResult(result)
+              .then(setSubmission)
+              .catch((error) => setSaveError(error instanceof Error ? error.message : "Ergebnis konnte nicht gespeichert werden."));
+          } : undefined}
+        />
+      </View>
+    );
+  }
+
+  const lpChanges = {
+    ...submission.profile,
+    rankUp: submission.profile.tier !== result.oldTier || submission.profile.division !== result.oldDivision,
+  };
   const oppConfig = RANK_CONFIG[result.opponent.tier];
-  const newWinrate = getWinrate(
-    result.won ? rankedProfile.wins + 1 : rankedProfile.wins,
-    result.won ? rankedProfile.losses : rankedProfile.losses + 1
-  );
+  const newWinrate = getWinrate(submission.profile.wins, submission.profile.losses);
   const xpGained = result.won ? 240 : 80;
   const bgColor = result.won ? "#120D1F" : "#0E0E14";
   const heroGlow = result.won ? colors.sun : colors.stageCoral;
@@ -198,7 +222,7 @@ export function RankedResultScreen() {
           </Text>
           {!result.won && (
             <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 15, textAlign: "center" }}>
-              Knapp vorbei – beim nächsten Mal klappt's! 💪
+              Knapp vorbei – beim nächsten Mal klappt&apos;s! 💪
             </Text>
           )}
 
@@ -214,10 +238,10 @@ export function RankedResultScreen() {
                 <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 12 }}>🔥 +{result.streakBonus} LP Streak</Text>
               </View>
             )}
-            {(rankedProfile.winStreak >= 2 || result.won) && result.won && (
+            {submission.profile.winStreak >= 2 && result.won && (
               <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: radii.round, backgroundColor: "rgba(67,184,107,0.15)", borderWidth: 1, borderColor: "rgba(67,184,107,0.3)" }}>
                 <Text style={{ color: colors.online, fontFamily: fonts.bodyBold, fontSize: 12 }}>
-                  🔥 {rankedProfile.winStreak + 1} Siege in Folge
+                  🔥 {submission.profile.winStreak} Siege in Folge
                 </Text>
               </View>
             )}
@@ -248,7 +272,7 @@ export function RankedResultScreen() {
             </View>
 
             {/* Center LP badge */}
-            <LpDeltaBadge delta={result.lpDelta} reducedMotion={reducedMotion} />
+            <LpDeltaBadge delta={submission.lpDelta} reducedMotion={reducedMotion} />
 
             <View style={{ alignItems: "center", gap: 4 }}>
               <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 12 }}>{result.opponent.name}</Text>

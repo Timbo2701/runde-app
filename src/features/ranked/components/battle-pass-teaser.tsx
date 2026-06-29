@@ -2,17 +2,19 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { getNextRewards } from "@/data/ranked-rewards";
+import type { BattlePassReward } from "@/types/ranked";
 
 interface BattlePassTeaserProps {
   level: number;
   xp: number;
   maxXp?: number;
+  maxLevel: number;
+  rewards: BattlePassReward[];
 }
 
-export function BattlePassTeaser({ level, xp, maxXp = 1000 }: BattlePassTeaserProps) {
+export function BattlePassTeaser({ level, xp, maxXp = 1000, maxLevel, rewards }: BattlePassTeaserProps) {
   const progress = xp / maxXp;
-  const nextRewards = getNextRewards(level, 2);
+  const nextRewards = rewards.filter((reward) => reward.level > level).slice(0, 2);
 
   return (
     <Pressable
@@ -64,7 +66,7 @@ export function BattlePassTeaser({ level, xp, maxXp = 1000 }: BattlePassTeaserPr
           }} />
         </View>
         <Text style={{ color: colors.whiteSoft, fontFamily: fonts.mono, fontSize: 10 }}>
-          {xp} / {maxXp} XP • {50 - level} Level bis Season-Ende
+          {xp} / {maxXp} XP • {Math.max(0, maxLevel - level)} Level bis Season-Ende
         </Text>
       </View>
 

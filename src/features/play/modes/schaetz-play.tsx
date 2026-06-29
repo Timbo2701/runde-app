@@ -25,8 +25,11 @@ export function SchaetzPlay({ code, roundNumber, totalRounds, question, onResult
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setInputValue("");
-    setSubmitted(false);
+    const timer = setTimeout(() => {
+      setInputValue("");
+      setSubmitted(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roundNumber]);
 
   const handleSubmit = () => {

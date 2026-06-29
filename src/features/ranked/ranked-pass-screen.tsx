@@ -3,12 +3,13 @@ import { Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { BATTLE_PASS_REWARDS } from "@/data/ranked-rewards";
 import { useRanked } from "@/lib/ranked-context";
+import { useBattlePassRewards } from "@/lib/supabase-hooks";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 import { BottomNav } from "@/ui/primitives/bottom-nav";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 import type { BattlePassReward } from "@/types/ranked";
 
 function RewardRow({ reward, currentLevel }: { reward: BattlePassReward; currentLevel: number }) {
@@ -105,19 +106,28 @@ function RewardRow({ reward, currentLevel }: { reward: BattlePassReward; current
 
 export function RankedPassScreen() {
   const { rankedProfile } = useRanked();
+  const { data: rewards, loading, error, refresh } = useBattlePassRewards();
   const reducedMotion = useReducedMotion();
   const xpProgress = rankedProfile.battlePassXp / 1000;
 
-  // Build full reward list for levels 1-20
-  const fullRewards = Array.from({ length: 20 }, (_, i) => {
-    const level = i + 1;
-    const explicit = BATTLE_PASS_REWARDS.find((r) => r.level === level);
-    return explicit ?? {
-      level,
-      free: { emoji: "💬", label: `+${level * 50} Season XP`, type: "xp" },
-      premium: { emoji: "✨", label: "Premium Bonus", type: "bonus" },
-    };
-  });
+  const fullRewards = rewards;
+
+  if (loading || error || rewards.length === 0) {
+    return (
+      <View style={{ flex: 1 }}>
+        <StageScreen stageColor={colors.stageGrapeDeep} pattern="dots">
+          <AppHeader title="Neon Pass" actionLabel="Zurück" onAction={() => router.back()} />
+          <DataStatePanel
+            title={loading ? "Neon Pass wird geladen" : error ? "Neon Pass nicht erreichbar" : "Keine Pass-Belohnungen aktiv"}
+            message={loading ? "Fortschritt und Belohnungen kommen direkt aus Supabase." : error ?? "Für diese Season wurden noch keine Belohnungen hinterlegt."}
+            loading={loading}
+            onRetry={loading ? undefined : () => void refresh()}
+          />
+        </StageScreen>
+        <BottomNav activeTab="ranked" />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>

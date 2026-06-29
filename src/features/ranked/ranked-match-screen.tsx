@@ -2,31 +2,36 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import Animated, {
-  FadeIn,
   FadeInDown,
   FadeInUp,
   ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { getOpponentById } from "@/data/ranked-mock-data";
-import { getRandomQuestion } from "@/data/ranked-questions";
-import { getBotResult, calcCloseGuessPoints, RANK_CONFIG, getFullRankLabel } from "@/lib/ranked-logic";
+import { colors, fonts, radii } from "@/design/tokens";
+import { getBotResult, calcCloseGuessPoints, RANK_CONFIG } from "@/lib/ranked-logic";
 import { useRanked } from "@/lib/ranked-context";
+import { useRankedBots, useRankedQuestions } from "@/lib/supabase-hooks";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import type { MatchResult, MatchRoundResult, MindClashQuestion } from "@/types/ranked";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 
 const ROUND_TYPES = ["speed_choice", "close_guess", "bluff_tap"] as const;
 const ROUND_LABELS = ["Speed Choice", "Close Guess", "Bluff Tap"];
 const ROUND_EMOJIS = ["⚡", "🎯", "🃏"];
 const ROUND_DESCS = ["Erste richtige Antwort gewinnt", "Schätze die Zahl so nah wie möglich", "Finde die einzig wahre Aussage"];
 const ROUND_TIMERS = [10, 15, 8];
+
+function createSubmissionId() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const value = Math.floor(Math.random() * 16);
+    return (char === "x" ? value : (value & 0x3) | 0x8).toString(16);
+  });
+}
 
 type Phase = "round_intro" | "playing" | "round_result";
 
@@ -228,8 +233,10 @@ export function RankedMatchScreen() {
   const { opponentId } = useLocalSearchParams<{ opponentId: string }>();
   const reducedMotion = useReducedMotion();
   const { rankedProfile } = useRanked();
-  const opponent = getOpponentById(opponentId ?? "mika");
-  const oppConfig = RANK_CONFIG[opponent.tier];
+  const { data: rankedBots, loading: botsLoading, error: botsError, refresh: refreshBots } = useRankedBots();
+  const { data: questionPool, loading: questionsLoading, error: questionsError, refresh: refreshQuestions } = useRankedQuestions();
+  const opponent = rankedBots.find((bot) => bot.id === opponentId);
+  const oppConfig = RANK_CONFIG[opponent?.tier ?? "bronze"];
 
   const [roundIndex, setRoundIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("round_intro");
@@ -238,6 +245,7 @@ export function RankedMatchScreen() {
   const [playerScore, setPlayerScore] = useState(0);
   const [botScore, setBotScore] = useState(0);
   const [questions, setQuestions] = useState<MindClashQuestion[]>([]);
+  const [questionSelectionError, setQuestionSelectionError] = useState<string | null>(null);
   const usedIds = useRef<string[]>([]);
 
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -258,17 +266,29 @@ export function RankedMatchScreen() {
   const roundType = ROUND_TYPES[roundIndex];
 
   useEffect(() => {
-    const qs = ROUND_TYPES.map((type) => {
-      const q = getRandomQuestion(type, usedIds.current);
-      usedIds.current.push(q.id);
-      return q;
-    });
-    setQuestions(qs);
-  }, []);
+    if (questionsLoading || questionsError) return;
+    const timer = setTimeout(() => {
+      const qs: MindClashQuestion[] = [];
+      for (const type of ROUND_TYPES) {
+        const remotePool = questionPool.filter((question) => question.roundType === type && !usedIds.current.includes(question.id));
+        const q = remotePool[Math.floor(Math.random() * remotePool.length)];
+        if (!q) {
+          setQuestionSelectionError(`Für ${type} ist keine aktive Frage in Supabase vorhanden.`);
+          setQuestions([]);
+          return;
+        }
+        usedIds.current.push(q.id);
+        qs.push(q);
+      }
+      setQuestionSelectionError(null);
+      setQuestions(qs);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [questionPool, questionsError, questionsLoading]);
 
   // Round intro → playing
   useEffect(() => {
-    if (phase !== "round_intro") return;
+    if (phase !== "round_intro" || !currentQuestion || !opponent) return;
     timerRef.current = setTimeout(() => {
       setPhase("playing");
       setTimeLeft(ROUND_TIMERS[roundIndex]);
@@ -370,6 +390,7 @@ export function RankedMatchScreen() {
   }
 
   function finishMatch() {
+    if (!opponent) return;
     const allRounds = roundResults;
     const totalPlayer = allRounds.reduce((s, r) => s + r.playerPoints, 0);
     const totalBot = allRounds.reduce((s, r) => s + r.botPoints, 0);
@@ -380,6 +401,7 @@ export function RankedMatchScreen() {
       : -(15 + Math.floor(Math.random() * 11));
 
     const result: MatchResult = {
+      submissionId: createSubmissionId(),
       rounds: allRounds,
       playerTotalPoints: totalPlayer,
       botTotalPoints: totalBot,
@@ -398,10 +420,21 @@ export function RankedMatchScreen() {
     });
   }
 
-  if (!currentQuestion) {
+  const loadError = botsError ?? questionsError ?? questionSelectionError ?? (!botsLoading && !opponent ? "Der gewählte Gegner ist nicht mehr verfügbar." : null);
+  if (botsLoading || questionsLoading || loadError || !currentQuestion || !opponent) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.stageGrapeDeep, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: colors.white, fontFamily: fonts.body }}>Lädt…</Text>
+      <View style={{ flex: 1, backgroundColor: colors.stageGrapeDeep, justifyContent: "center", paddingHorizontal: 24 }}>
+        <DataStatePanel
+          title={botsLoading || questionsLoading ? "Match wird vorbereitet" : "Match kann nicht starten"}
+          message={botsLoading || questionsLoading ? "Gegner und Fragen werden direkt aus Supabase geladen." : loadError ?? "Es fehlen Matchdaten."}
+          loading={botsLoading || questionsLoading}
+          onRetry={botsLoading || questionsLoading ? undefined : () => { void refreshBots(); void refreshQuestions(); }}
+        />
+        {!botsLoading && !questionsLoading ? (
+          <Pressable onPress={() => router.replace("/ranked" as never)} style={{ alignItems: "center", padding: 18 }}>
+            <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold }}>Zurück zur Arena</Text>
+          </Pressable>
+        ) : null}
       </View>
     );
   }

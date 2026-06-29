@@ -2,10 +2,8 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import Animated, {
   FadeInDown,
-  FadeOutUp,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withTiming,
 } from "react-native-reanimated";
 

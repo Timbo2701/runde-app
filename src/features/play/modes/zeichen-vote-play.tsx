@@ -8,7 +8,7 @@
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PanResponder, Pressable, Text, View, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import Svg, { Polyline } from "react-native-svg";
@@ -18,8 +18,6 @@ import type { RoundQuestion } from "@/lib/game-types";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import type { DrawPoint, DrawStroke } from "@/types/drawing";
 import { BrandButton } from "@/ui/primitives/brand-button";
-
-const BOT_NAME = "Mika";
 
 // ── Color palette ─────────────────────────────────────────────────────────────
 
@@ -169,8 +167,8 @@ function DrawingCanvas({
   readonly = false,
   scale = 1,
 }: CanvasProps) {
-  const panResponder = useRef(
-    PanResponder.create({
+  const panResponder = useMemo(
+    () => PanResponder.create({
       onStartShouldSetPanResponder: () => !readonly,
       onMoveShouldSetPanResponder: () => !readonly,
       onPanResponderGrant: (evt) => {
@@ -183,8 +181,9 @@ function DrawingCanvas({
       },
       onPanResponderRelease: () => onTouchEnd(),
       onPanResponderTerminate: () => onTouchEnd(),
-    })
-  ).current;
+    }),
+    [readonly, onTouchStart, onTouchMove, onTouchEnd]
+  );
 
   const scaledStrokes = scale !== 1 ? scaleStrokes(strokes, scale, scale) : strokes;
   const scaledCurrent: DrawStroke | null =
@@ -487,14 +486,17 @@ export function ZeichenVotePlay({ code, roundNumber, totalRounds, question, onRe
 
   useEffect(() => {
     // Reset on round change
-    setPhase("draw");
-    setStrokes([]);
-    strokesRef.current = [];
-    setCurrentStroke([]);
-    currentStrokeRef.current = [];
-    setPlayerVote(null);
-    setVoteSubmitted(false);
-    strokeIdRef.current = 0;
+    const timer = setTimeout(() => {
+      setPhase("draw");
+      setStrokes([]);
+      strokesRef.current = [];
+      setCurrentStroke([]);
+      currentStrokeRef.current = [];
+      setPlayerVote(null);
+      setVoteSubmitted(false);
+      strokeIdRef.current = 0;
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roundNumber]);
 
   // Keep color/size refs in sync with state
@@ -755,7 +757,7 @@ export function ZeichenVotePlay({ code, roundNumber, totalRounds, question, onRe
           Wer hat das{"\n"}Meisterwerk verbrochen?
         </Text>
         <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 13 }}>
-          Prompt: „{question.prompt}"
+          Prompt: „{question.prompt}“
         </Text>
       </Animated.View>
 

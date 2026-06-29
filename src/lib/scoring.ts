@@ -133,15 +133,8 @@ export function calculateBluffScore(
   }>,
   correctAnswer: string
 ): RoundScoreResult {
-  // Count votes per answer
-  const votesPerAnswer: Record<string, number> = {};
-  for (const p of playerAnswers) {
-    votesPerAnswer[p.vote] = (votesPerAnswer[p.vote] ?? 0) + 1;
-  }
-
   const events: RoundScoreEvent[] = playerAnswers.map((p) => {
     const votedCorrect = p.vote === correctAnswer;
-    const votesOnFake = votesPerAnswer[p.fakeAnswer] ?? 0;
     // Don't count own vote on own fake
     const otherVotesOnFake = playerAnswers.filter(
       (other) => other.playerId !== p.playerId && other.vote === p.fakeAnswer

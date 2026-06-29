@@ -16,8 +16,8 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { trackAchievementEvent } from "@/lib/achievement-tracker";
 import { useProfile } from "@/lib/profile-context";
+import { useTrackEvent } from "@/lib/use-achievements";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { BrandButton } from "@/ui/primitives/brand-button";
@@ -173,20 +173,21 @@ export function FinalScreen() {
       ];
   const winner = scores[0];
 
-  const { roundsPlayed, wins, setProfile, selectedWinnerEffect } = useProfile();
+  const { roundsPlayed, wins, losses, setProfile, selectedWinnerEffect } = useProfile();
+  const playerWon = myPoints > mikaPoints;
+  const newWins = playerWon ? wins + 1 : wins;
+  useTrackEvent({ type: "round_played", mode: "klassiker" });
+  useTrackEvent({ type: "day_played" });
+  useTrackEvent(playerWon ? { type: "round_won", mode: "klassiker", totalWins: newWins } : null);
 
   useEffect(() => {
     // Track stats: +1 round played, +1 win if local player won
-    const playerWon = myPoints > mikaPoints;
-    const newWins = playerWon ? wins + 1 : wins;
-    void setProfile({ roundsPlayed: roundsPlayed + 1, wins: newWins });
-
-    // Achievement events
-    void trackAchievementEvent({ type: "round_played", mode: "klassiker" });
-    void trackAchievementEvent({ type: "day_played" });
-    if (playerWon) {
-      void trackAchievementEvent({ type: "round_won", mode: "klassiker", totalWins: newWins });
-    }
+    void setProfile({
+      roundsPlayed: roundsPlayed + 1,
+      wins: newWins,
+      losses: playerWon ? losses : losses + 1,
+      favoriteMode: "Klassiker",
+    });
   }, []); // run once on mount
 
   useEffect(() => {

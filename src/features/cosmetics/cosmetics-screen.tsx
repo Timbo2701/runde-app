@@ -38,23 +38,6 @@ function isOwned(item: CosmeticItem, ownedCosmetics: string[], achievementState:
   return false;
 }
 
-function getSelectedForCategory(
-  category: CosmeticCategory,
-  selectedBadge: string | null,
-  selectedTitle: string | null,
-  selectedWinnerEffect: string | null
-): string | null {
-  if (category === "badge") return selectedBadge;
-  if (category === "title") return selectedTitle;
-  return selectedWinnerEffect;
-}
-
-function defaultForCategory(category: CosmeticCategory): string {
-  if (category === "badge") return "badge_default";
-  if (category === "title") return "title_none";
-  return "effect_confetti";
-}
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function SourceBadge({ item, achievementState, ownedCosmetics }: {

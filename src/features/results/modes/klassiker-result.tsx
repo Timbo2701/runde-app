@@ -11,8 +11,6 @@ import { BrandButton } from "@/ui/primitives/brand-button";
 
 const MIKA_AVATAR = "https://i.pravatar.cc/150?img=47";
 const BOT_NAME = "Mika";
-const TOTAL_ROUNDS = 5;
-
 function countVotes(votes: string[]): Record<string, number> {
   const tally: Record<string, number> = {};
   for (const v of votes) tally[v] = (tally[v] ?? 0) + 1;

@@ -1,15 +1,27 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { PropsWithChildren } from "react";
+import { View } from "react-native";
+
+import { colors } from "@/design/tokens";
+import { useAuth } from "@/lib/auth-context";
+import {
+  fetchCosmeticOwnership,
+  fetchPlayerStats,
+  grantCosmetics,
+  saveSelectedCosmetics,
+  updatePlayerStatsRecord,
+  updateProfileRecord,
+} from "@/services/supabase-data";
 
 type ProfileState = {
   name: string;
   photo: string | null;
   email: string;
-  // Stats (lokal/mock)
   roundsPlayed: number;
   wins: number;
-  // Kosmetik (mock — keine echte Payment-Abhängigkeit)
+  losses: number;
+  favoriteMode: string | null;
+  bestCategory: string | null;
   selectedBadge: string | null;
   selectedTitle: string | null;
   selectedWinnerEffect: string | null;
@@ -18,100 +30,137 @@ type ProfileState = {
 
 type ProfileContextValue = ProfileState & {
   setProfile: (update: Partial<ProfileState>) => Promise<void>;
-  addOwnedCosmetics: (ids: string[]) => Promise<void>;
+  addOwnedCosmetics: (ids: string[], source?: "mock" | "achievement") => Promise<void>;
+  refresh: () => Promise<void>;
   loaded: boolean;
+  error: string | null;
 };
 
-const ProfileContext = createContext<ProfileContextValue>({
+const EMPTY_PROFILE: ProfileState = {
   name: "",
   photo: null,
   email: "",
   roundsPlayed: 0,
   wins: 0,
+  losses: 0,
+  favoriteMode: null,
+  bestCategory: null,
   selectedBadge: null,
   selectedTitle: null,
   selectedWinnerEffect: null,
   ownedCosmetics: [],
+};
+
+const ProfileContext = createContext<ProfileContextValue>({
+  ...EMPTY_PROFILE,
   loaded: false,
+  error: null,
   setProfile: async () => {},
   addOwnedCosmetics: async () => {},
+  refresh: async () => {},
 });
 
-const KEYS = [
-  "@runde:profile_name",
-  "@runde:profile_photo",
-  "@runde:profile_email",
-  "@runde:rounds_played",
-  "@runde:wins",
-  "@runde:selected_badge",
-  "@runde:selected_title",
-  "@runde:selected_winner_effect",
-  "@runde:owned_cosmetics",
-] as const;
-
 export function ProfileProvider({ children }: PropsWithChildren) {
-  const [state, setState] = useState<ProfileState>({
-    name: "",
-    photo: null,
-    email: "",
-    roundsPlayed: 0,
-    wins: 0,
-    selectedBadge: null,
-    selectedTitle: null,
-    selectedWinnerEffect: null,
-    ownedCosmetics: [],
-  });
+  const { session, loading: authLoading, refreshProfile } = useAuth();
+  const [state, setState] = useState<ProfileState>(EMPTY_PROFILE);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!session) {
+      setState(EMPTY_PROFILE);
+      setLoaded(!authLoading);
+      setError(null);
+      return;
+    }
+
+    setLoaded(false);
+    try {
+      const [remoteProfile, stats, cosmetics] = await Promise.all([
+        refreshProfile(),
+        fetchPlayerStats(session.user.id),
+        fetchCosmeticOwnership(session.user.id),
+      ]);
+      if (!remoteProfile) throw new Error("Profil fehlt in der Datenbank.");
+      setState({
+        name: remoteProfile.displayName,
+        photo: remoteProfile.avatarUrl,
+        email: session.user.email ?? "",
+        roundsPlayed: stats.roundsPlayed,
+        wins: stats.wins,
+        losses: stats.losses,
+        favoriteMode: stats.favoriteMode,
+        bestCategory: stats.bestCategory,
+        selectedBadge: cosmetics.selectedBadge,
+        selectedTitle: cosmetics.selectedTitle,
+        selectedWinnerEffect: cosmetics.selectedWinnerEffect,
+        ownedCosmetics: cosmetics.ownedIds,
+      });
+      setError(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Profildaten konnten nicht geladen werden.");
+    } finally {
+      setLoaded(true);
+    }
+  }, [authLoading, refreshProfile, session]);
 
   useEffect(() => {
-    AsyncStorage.multiGet([...KEYS]).then((pairs) => {
-      const map = Object.fromEntries(pairs.map(([k, v]) => [k, v ?? ""]));
-      setState({
-        name: map["@runde:profile_name"] || "",
-        photo: map["@runde:profile_photo"] || null,
-        email: map["@runde:profile_email"] || "",
-        roundsPlayed: parseInt(map["@runde:rounds_played"] || "0", 10),
-        wins: parseInt(map["@runde:wins"] || "0", 10),
-        selectedBadge: map["@runde:selected_badge"] || null,
-        selectedTitle: map["@runde:selected_title"] || null,
-        selectedWinnerEffect: map["@runde:selected_winner_effect"] || null,
-        ownedCosmetics: map["@runde:owned_cosmetics"]
-          ? (JSON.parse(map["@runde:owned_cosmetics"]) as string[])
-          : [],
+    const timer = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(timer);
+  }, [refresh]);
+
+  const setProfile = useCallback(async (update: Partial<ProfileState>) => {
+    if (!session) throw new Error("Zum Speichern ist eine Anmeldung erforderlich.");
+    const next = { ...state, ...update };
+
+    const identityChanged = update.name !== undefined || update.photo !== undefined;
+    if (identityChanged) {
+      await updateProfileRecord(session.user.id, {
+        displayName: next.name,
+        avatarUrl: next.photo,
       });
-      setLoaded(true);
-    });
-  }, []);
+    }
+    if (update.selectedBadge !== undefined || update.selectedTitle !== undefined || update.selectedWinnerEffect !== undefined) {
+      await saveSelectedCosmetics(session.user.id, {
+        badge: next.selectedBadge,
+        title: next.selectedTitle,
+        winnerEffect: next.selectedWinnerEffect,
+      });
+    }
+    if (
+      update.roundsPlayed !== undefined || update.wins !== undefined || update.losses !== undefined ||
+      update.favoriteMode !== undefined || update.bestCategory !== undefined
+    ) {
+      await updatePlayerStatsRecord(session.user.id, {
+        roundsPlayed: next.roundsPlayed,
+        wins: next.wins,
+        losses: next.losses,
+        favoriteMode: next.favoriteMode,
+        bestCategory: next.bestCategory,
+      });
+    }
 
-  const setProfile = useCallback(
-    async (update: Partial<ProfileState>) => {
-      const next = { ...state, ...update };
-      setState(next);
-      await AsyncStorage.multiSet([
-        ["@runde:profile_name", next.name],
-        ["@runde:profile_photo", next.photo ?? ""],
-        ["@runde:profile_email", next.email],
-        ["@runde:rounds_played", String(next.roundsPlayed)],
-        ["@runde:wins", String(next.wins)],
-        ["@runde:selected_badge", next.selectedBadge ?? ""],
-        ["@runde:selected_title", next.selectedTitle ?? ""],
-        ["@runde:selected_winner_effect", next.selectedWinnerEffect ?? ""],
-        ["@runde:owned_cosmetics", JSON.stringify(next.ownedCosmetics)],
-      ]);
-    },
-    [state]
-  );
+    setState(next);
+    setError(null);
+  }, [session, state]);
 
-  const addOwnedCosmetics = useCallback(
-    async (ids: string[]) => {
-      const next = [...new Set([...state.ownedCosmetics, ...ids])];
-      await setProfile({ ownedCosmetics: next });
-    },
-    [state.ownedCosmetics, setProfile]
-  );
+  const addOwnedCosmetics = useCallback(async (ids: string[], source: "mock" | "achievement" = "mock") => {
+    if (!session) throw new Error("Zum Freischalten ist eine Anmeldung erforderlich.");
+    await grantCosmetics(session.user.id, ids, source);
+    const cosmetics = await fetchCosmeticOwnership(session.user.id);
+    setState((current) => ({
+      ...current,
+      ownedCosmetics: cosmetics.ownedIds,
+      selectedBadge: cosmetics.selectedBadge,
+      selectedTitle: cosmetics.selectedTitle,
+      selectedWinnerEffect: cosmetics.selectedWinnerEffect,
+    }));
+  }, [session]);
+
+  if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.stageBerry }} />;
 
   return (
-    <ProfileContext.Provider value={{ ...state, loaded, setProfile, addOwnedCosmetics }}>
+    <ProfileContext.Provider value={{ ...state, loaded, error, setProfile, addOwnedCosmetics, refresh }}>
       {children}
     </ProfileContext.Provider>
   );

@@ -27,8 +27,11 @@ export function QuizPlay({ code, roundNumber, totalRounds, question, onResult }:
   const options = question.options ?? [];
 
   useEffect(() => {
-    setSelected(null);
-    setSubmitted(false);
+    const timer = setTimeout(() => {
+      setSelected(null);
+      setSubmitted(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roundNumber]);
 
   const handleSubmit = () => {

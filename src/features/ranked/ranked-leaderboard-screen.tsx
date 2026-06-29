@@ -4,8 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { MOCK_LEADERBOARD } from "@/data/ranked-mock-data";
-import { RANK_CONFIG, getFullRankLabel, getWinrate } from "@/lib/ranked-logic";
+import { RANK_CONFIG, getWinrate } from "@/lib/ranked-logic";
 import { useRanked } from "@/lib/ranked-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -13,6 +12,8 @@ import { StageScreen } from "@/ui/primitives/stage-screen";
 import { BottomNav } from "@/ui/primitives/bottom-nav";
 import { LeaderboardRow } from "@/features/ranked/components/leaderboard-row";
 import type { LeaderboardEntry } from "@/types/ranked";
+import { useLeaderboard } from "@/lib/supabase-hooks";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 
 const TABS = ["Global", "Diese Woche", "Season"] as const;
 type TabId = typeof TABS[number];
@@ -57,22 +58,41 @@ function PodiumCard({ entry, pos }: { entry: LeaderboardEntry; pos: 0 | 1 | 2 })
 export function RankedLeaderboardScreen() {
   const [activeTab, setActiveTab] = useState<TabId>("Global");
   const { rankedProfile } = useRanked();
+  const { data: leaderboard, loading, error, refresh } = useLeaderboard();
   const reducedMotion = useReducedMotion();
   const winrate = getWinrate(rankedProfile.wins, rankedProfile.losses);
+  const databasePlayer = leaderboard.find((entry) => entry.isPlayer);
+
+  if (loading || error || leaderboard.length === 0) {
+    return (
+      <View style={{ flex: 1 }}>
+        <StageScreen stageColor={colors.stageGrapeDeep} pattern="dots">
+          <AppHeader title="Rangliste" actionLabel="Zurück" onAction={() => router.back()} />
+          <DataStatePanel
+            title={loading ? "Rangliste wird geladen" : error ? "Rangliste nicht erreichbar" : "Noch keine Ranglistendaten"}
+            message={loading ? "Die Platzierungen kommen direkt aus Supabase." : error ?? "Sobald Ranked-Profile existieren, erscheinen sie hier."}
+            loading={loading}
+            onRetry={loading ? undefined : () => void refresh()}
+          />
+        </StageScreen>
+        <BottomNav activeTab="ranked" />
+      </View>
+    );
+  }
 
   const playerEntry: LeaderboardEntry = {
-    rank: rankedProfile.globalRank,
-    name: "Du",
+    rank: databasePlayer?.rank ?? rankedProfile.globalRank,
+    name: databasePlayer?.name ?? "Du",
     tier: rankedProfile.tier,
     division: rankedProfile.division,
     lp: rankedProfile.lp,
     winrate,
-    avatarEmoji: "👤",
+    avatarEmoji: databasePlayer?.avatarEmoji ?? "👤",
     isPlayer: true,
   };
 
-  const top3 = MOCK_LEADERBOARD.slice(0, 3);
-  const rest = MOCK_LEADERBOARD.slice(3);
+  const top3 = leaderboard.slice(0, 3);
+  const rest = leaderboard.slice(3).filter((entry) => !entry.isPlayer);
 
   return (
     <View style={{ flex: 1 }}>
@@ -116,7 +136,7 @@ export function RankedLeaderboardScreen() {
           })}
         </Animated.View>
 
-        {/* Mock data notice */}
+        {/* Data source notice */}
         <View style={{
           paddingHorizontal: 12,
           paddingVertical: 6,
@@ -127,7 +147,7 @@ export function RankedLeaderboardScreen() {
           marginBottom: spacing.xl,
         }}>
           <Text style={{ color: colors.sun, fontFamily: fonts.body, fontSize: 11, textAlign: "center" }}>
-            📊 Mock-Daten • Echte Rangliste kommt mit Server-Launch
+            ● LIVE • Supabase Rangliste
           </Text>
         </View>
 
@@ -136,9 +156,9 @@ export function RankedLeaderboardScreen() {
           entering={reducedMotion ? undefined : FadeInDown.delay(100).duration(400)}
           style={{ flexDirection: "row", alignItems: "flex-end", gap: spacing.md, marginBottom: spacing.xl }}
         >
-          <PodiumCard entry={top3[1]} pos={1} />
-          <PodiumCard entry={top3[0]} pos={0} />
-          <PodiumCard entry={top3[2]} pos={2} />
+          {top3[1] ? <PodiumCard entry={top3[1]} pos={1} /> : null}
+          {top3[0] ? <PodiumCard entry={top3[0]} pos={0} /> : null}
+          {top3[2] ? <PodiumCard entry={top3[2]} pos={2} /> : null}
         </Animated.View>
 
         {/* List */}

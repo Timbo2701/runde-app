@@ -41,13 +41,16 @@ export function BluffPlay({ code, roundNumber, totalRounds, question, onResult }
   const correctAnswer = question.correctAnswer ?? "";
 
   useEffect(() => {
-    setPhase("write");
-    setPlayerFake("");
-    setBotFake("");
-    setFakeSubmitted(false);
-    setVoteOptions([]);
-    setPlayerVote(null);
-    setVoteSubmitted(false);
+    const timer = setTimeout(() => {
+      setPhase("write");
+      setPlayerFake("");
+      setBotFake("");
+      setFakeSubmitted(false);
+      setVoteOptions([]);
+      setPlayerVote(null);
+      setVoteSubmitted(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roundNumber]);
 
   useEffect(() => {

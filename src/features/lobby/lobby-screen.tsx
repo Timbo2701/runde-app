@@ -6,7 +6,6 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { getModeById } from "@/data/game-modes";
 import { colors, fonts, radii } from "@/design/tokens";
-import type { GameModeType } from "@/lib/game-types";
 import { getInitials, normalizeRoomCode } from "@/lib/room";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";

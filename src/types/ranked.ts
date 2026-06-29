@@ -55,6 +55,7 @@ export interface MatchRoundResult {
 }
 
 export interface MatchResult {
+  submissionId: string;
   rounds: MatchRoundResult[];
   playerTotalPoints: number;
   botTotalPoints: number;

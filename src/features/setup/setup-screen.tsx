@@ -1,12 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/profile-context";
 import { Image, Pressable, Text, TextInput, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { colors, fonts, radii } from "@/design/tokens";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { StageScreen } from "@/ui/primitives/stage-screen";
@@ -52,8 +52,7 @@ function EmailInput({ email, setEmail }: { email: string; setEmail: (v: string) 
   return (
     <View style={{ gap: 6 }}>
       <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 13, letterSpacing: 0.4 }}>
-        E-Mail verknüpfen{" "}
-        <Text style={{ color: "rgba(255,255,255,0.38)", fontFamily: fonts.body, fontSize: 12 }}>(optional)</Text>
+        E-Mail
       </Text>
       <TextInput
         value={email}
@@ -79,21 +78,22 @@ function EmailInput({ email, setEmail }: { email: string; setEmail: (v: string) 
           color: colors.white,
         }}
       />
-      <View style={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        backgroundColor: "rgba(255,255,255,0.06)",
-        borderRadius: radii.control,
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.10)",
-        padding: 12,
-      }}>
-        <Text style={{ fontSize: 14 }}>🔒</Text>
-        <Text style={{ color: "rgba(255,255,255,0.45)", fontFamily: fonts.body, fontSize: 12, flex: 1 }}>
-          Platzhalter — Konto-Sync kommt in einer späteren Version.
-        </Text>
-      </View>
+    </View>
+  );
+}
+
+function PasswordInput({ password, setPassword }: { password: string; setPassword: (v: string) => void }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 13 }}>Passwort</Text>
+      <TextInput
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Mindestens 6 Zeichen"
+        placeholderTextColor="rgba(255,255,255,0.28)"
+        secureTextEntry
+        style={{ minHeight: 54, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: radii.control, borderWidth: 1.5, borderColor: "rgba(255,255,255,0.15)", paddingHorizontal: 18, fontFamily: fonts.bodySemiBold, fontSize: 17, color: colors.white }}
+      />
     </View>
   );
 }
@@ -120,9 +120,13 @@ function CameraIcon() {
 
 export function SetupScreen() {
   const profile = useProfile();
+  const auth = useAuth();
   const [name, setName] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const reducedMotion = useReducedMotion();
 
   const pickPhoto = async () => {
@@ -139,9 +143,25 @@ export function SetupScreen() {
 
   const finish = async () => {
     const finalName = name.trim() || randomName();
-    await AsyncStorage.setItem("@runde:onboarding_done", "1");
-    await profile.setProfile({ name: finalName, photo, email: email.trim() });
-    router.replace("/");
+    setBusy(true);
+    setMessage(null);
+    try {
+      if (!auth.session) {
+        const result = await auth.signUp(email.trim(), password, finalName, photo);
+        if (result.needsEmailConfirmation) {
+          setMessage("Bestätige deine E-Mail und melde dich danach an.");
+          return;
+        }
+      } else {
+        await auth.completeOnboarding(finalName, photo);
+        await profile.refresh();
+      }
+      router.replace("/");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Konto konnte nicht erstellt werden.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const initials = name.trim() ? name.trim()[0].toUpperCase() : "?";
@@ -208,19 +228,21 @@ export function SetupScreen() {
           {/* Name */}
           <NameInput name={name} setName={setName} />
 
-          {/* Email (Placeholder) */}
-          <EmailInput email={email} setEmail={setEmail} />
+          {!auth.session ? <EmailInput email={email} setEmail={setEmail} /> : null}
+          {!auth.session ? <PasswordInput password={password} setPassword={setPassword} /> : null}
         </Animated.View>
 
         <Animated.View entering={reducedMotion ? undefined : FadeIn.delay(300).duration(280)} style={{ gap: 12, paddingBottom: 8 }}>
           <BrandButton
-            label="Los geht's!"
+            label={busy ? "Konto wird erstellt…" : "Los geht's!"}
             onPress={finish}
             tone="sun"
+            disabled={busy || (!auth.session && (!email.trim() || password.length < 6))}
           />
-          <Pressable onPress={finish} style={{ alignItems: "center", paddingVertical: 6 }}>
+          {message ? <Text accessibilityLiveRegion="polite" style={{ color: colors.sun, fontFamily: fonts.bodySemiBold, fontSize: 13, textAlign: "center" }}>{message}</Text> : null}
+          <Pressable onPress={() => router.replace("/auth" as never)} style={{ alignItems: "center", paddingVertical: 6 }}>
             <Text style={{ color: colors.whiteSoft, fontFamily: fonts.body, fontSize: 14 }}>
-              Überspringen
+              Schon registriert? Anmelden
             </Text>
           </Pressable>
         </Animated.View>

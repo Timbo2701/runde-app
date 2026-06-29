@@ -14,8 +14,6 @@ const EFFECT_PALETTES: Record<string, string[]> = {
   effect_stars:     ["#FFD84D", "#FFF176", "#FFEE58", "#FFFFFF", "#FFD700", "#FFC107", "#FFECB3"],
   effect_lightning: ["#6F2BD3", "#A855F7", "#00E5FF", "#FFFFFF", "#7C4DFF", "#B388FF", "#40C4FF"],
 };
-const COLORS = EFFECT_PALETTES.effect_confetti;
-
 interface ParticleConfig {
   id: number;
   color: string;

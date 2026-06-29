@@ -30,8 +30,11 @@ export function KlassikerPlay({ code, roundNumber, totalRounds, question, onResu
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setChoice(null);
-    setSubmitted(false);
+    const timer = setTimeout(() => {
+      setChoice(null);
+      setSubmitted(false);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [roundNumber]);
 
   useEffect(() => {

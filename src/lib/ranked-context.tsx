@@ -1,100 +1,92 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { PropsWithChildren } from "react";
+import { View } from "react-native";
 
+import { colors } from "@/design/tokens";
+import { useAuth } from "@/lib/auth-context";
+import { fetchRankedProfile, submitRankedMatchResult } from "@/services/supabase-data";
+import type { RankedMatchSubmission } from "@/services/supabase-data";
 import type { MatchResult, RankedProfile } from "@/types/ranked";
-import { applyLpChange } from "@/lib/ranked-logic";
 
-const DEFAULT_RANKED: RankedProfile = {
-  tier: "silver",
-  division: 2,
-  lp: 280,
-  seasonPoints: 1240,
-  wins: 14,
-  losses: 9,
-  winStreak: 2,
-  bestWinStreak: 4,
-  globalRank: 12481,
-  mmr: 1420,
-  seasonName: "Neon Season 1",
-  battlePassLevel: 7,
-  battlePassXp: 340,
-  dailyMissionsCompleted: 1,
-  totalMissions: 3,
+const EMPTY_RANKED_PROFILE: RankedProfile = {
+  tier: "bronze",
+  division: 3,
+  lp: 0,
+  seasonPoints: 0,
+  wins: 0,
+  losses: 0,
+  winStreak: 0,
+  bestWinStreak: 0,
+  globalRank: 0,
+  mmr: 1000,
+  seasonName: "",
+  battlePassLevel: 1,
+  battlePassXp: 0,
+  dailyMissionsCompleted: 0,
+  totalMissions: 0,
 };
 
 type RankedContextValue = {
   rankedProfile: RankedProfile;
-  updateRankedProfile: (update: Partial<RankedProfile>) => Promise<void>;
-  applyMatchResult: (result: MatchResult) => Promise<void>;
+  applyMatchResult: (result: MatchResult) => Promise<RankedMatchSubmission>;
+  refresh: () => Promise<void>;
   loaded: boolean;
+  error: string | null;
 };
 
 const RankedContext = createContext<RankedContextValue>({
-  rankedProfile: DEFAULT_RANKED,
-  updateRankedProfile: async () => {},
-  applyMatchResult: async () => {},
+  rankedProfile: EMPTY_RANKED_PROFILE,
+  applyMatchResult: async () => ({ profile: EMPTY_RANKED_PROFILE, lpDelta: 0 }),
+  refresh: async () => {},
   loaded: false,
+  error: null,
 });
 
-const STORAGE_KEY = "@runde:ranked_profile";
-
 export function RankedProvider({ children }: PropsWithChildren) {
-  const [profile, setProfile] = useState<RankedProfile>(DEFAULT_RANKED);
+  const { session, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState<RankedProfile>(EMPTY_RANKED_PROFILE);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!session) {
+      setProfile(EMPTY_RANKED_PROFILE);
+      setLoaded(!authLoading);
+      setError(null);
+      return;
+    }
+    setLoaded(false);
+    try {
+      const remote = await fetchRankedProfile(session.user.id);
+      if (!remote) throw new Error("Ranked-Profil fehlt in der Datenbank.");
+      setProfile(remote);
+      setError(null);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Ranked-Profil konnte nicht geladen werden.");
+    } finally {
+      setLoaded(true);
+    }
+  }, [authLoading, session]);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) {
-        try {
-          setProfile({ ...DEFAULT_RANKED, ...(JSON.parse(raw) as Partial<RankedProfile>) });
-        } catch {
-          // ignore corrupt data
-        }
-      }
-      setLoaded(true);
-    });
-  }, []);
+    const timer = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(timer);
+  }, [refresh]);
 
-  const persist = useCallback(async (next: RankedProfile) => {
-    setProfile(next);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
+  const applyMatchResult = useCallback(async (result: MatchResult) => {
+    if (!session) throw new Error("Für Ranked ist eine Anmeldung erforderlich.");
+    const remote = await submitRankedMatchResult(result);
+    const refreshed = await fetchRankedProfile(session.user.id);
+    const nextProfile = refreshed ?? remote.profile;
+    setProfile(nextProfile);
+    setError(null);
+    return { ...remote, profile: nextProfile };
+  }, [session]);
 
-  const updateRankedProfile = useCallback(
-    async (update: Partial<RankedProfile>) => {
-      await persist({ ...profile, ...update });
-    },
-    [profile, persist]
-  );
-
-  const applyMatchResult = useCallback(
-    async (result: MatchResult) => {
-      const lpChanges = applyLpChange(profile, result.lpDelta);
-      const newStreak = result.won ? profile.winStreak + 1 : 0;
-      const next: RankedProfile = {
-        ...profile,
-        tier: lpChanges.tier,
-        division: lpChanges.division,
-        lp: lpChanges.lp,
-        wins: result.won ? profile.wins + 1 : profile.wins,
-        losses: result.won ? profile.losses : profile.losses + 1,
-        winStreak: newStreak,
-        bestWinStreak: Math.max(profile.bestWinStreak, newStreak),
-        seasonPoints: profile.seasonPoints + (result.won ? 150 : 50),
-        battlePassXp: (profile.battlePassXp + (result.won ? 240 : 80)) % 1000,
-        battlePassLevel: profile.battlePassXp + (result.won ? 240 : 80) >= 1000
-          ? profile.battlePassLevel + 1
-          : profile.battlePassLevel,
-        mmr: profile.mmr + (result.won ? 20 : -15),
-      };
-      await persist(next);
-    },
-    [profile, persist]
-  );
+  if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.stageGrapeDeep }} />;
 
   return (
-    <RankedContext.Provider value={{ rankedProfile: profile, updateRankedProfile, applyMatchResult, loaded }}>
+    <RankedContext.Provider value={{ rankedProfile: profile, applyMatchResult, refresh, loaded, error }}>
       {children}
     </RankedContext.Provider>
   );
@@ -103,3 +95,5 @@ export function RankedProvider({ children }: PropsWithChildren) {
 export function useRanked() {
   return useContext(RankedContext);
 }
+
+export const useRankedProfile = useRanked;

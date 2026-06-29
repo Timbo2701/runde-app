@@ -1,51 +1,56 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { ACHIEVEMENTS } from "@/data/achievements";
 import { COSMETICS } from "@/data/cosmetics";
 import type { Achievement } from "@/types/achievements";
-import {
-  type AchievementEvent,
-  type AchievementState,
-  getAchievementState,
-  trackAchievementEvent,
-} from "./achievement-tracker";
+import type { AchievementEvent } from "./achievement-tracker";
 import { useProfile } from "./profile-context";
-
-/** Merge static achievement definitions with persisted runtime state. */
-function mergeAchievements(
-  staticList: Achievement[],
-  state: AchievementState
-): Achievement[] {
-  return staticList.map((a) => {
-    const persisted = state[a.id];
-    if (!persisted) return a;
-    return {
-      ...a,
-      isUnlocked: persisted.isUnlocked,
-      progress: a.progress
-        ? { ...a.progress, current: persisted.progress }
-        : undefined,
-    };
-  });
-}
+import { useAuth } from "./auth-context";
+import { fetchAchievements, trackAchievementEventRemote } from "@/services/supabase-data";
 
 /**
  * Returns live achievement list (merged with persisted state).
  * Refreshes automatically after tracking events.
  */
 export function useAchievements() {
-  const [achievements, setAchievements] = useState<Achievement[]>(ACHIEVEMENTS);
+  const { session } = useAuth();
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [loading, setLoading] = useState(Boolean(session));
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const state = await getAchievementState();
-    setAchievements(mergeAchievements(ACHIEVEMENTS, state));
-  }, []);
+    if (session) {
+      setLoading(true);
+      try {
+      const records = await fetchAchievements(session.user.id);
+      setAchievements(records.map((record) => ({
+        id: record.slug,
+        title: record.title,
+        description: record.description,
+        emoji: record.icon,
+        category: record.category as Achievement["category"],
+        isUnlocked: record.unlocked,
+        progress: { current: record.progress, target: record.targetValue },
+        xp: 0,
+      })));
+        setError(null);
+      } catch (nextError) {
+        setError(nextError instanceof Error ? nextError.message : "Achievements konnten nicht geladen werden.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    setAchievements([]);
+    setLoading(false);
+    setError(null);
+  }, [session]);
 
   useEffect(() => {
-    void refresh();
+    const timer = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(timer);
   }, [refresh]);
 
-  return { achievements, refresh };
+  return { achievements, loading, error, refresh };
 }
 
 /**
@@ -57,22 +62,24 @@ export function useTrackEvent(event: AchievementEvent | null) {
   const [newlyUnlocked, setNewlyUnlocked] = useState<string[]>([]);
   const firedRef = useRef(false);
   const { addOwnedCosmetics } = useProfile();
+  const { session } = useAuth();
 
   useEffect(() => {
     if (!event || firedRef.current) return;
     firedRef.current = true;
-    trackAchievementEvent(event).then((ids) => {
+    if (!session) return;
+    trackAchievementEventRemote(event as unknown as Record<string, unknown>).then((ids) => {
       setNewlyUnlocked(ids);
       if (ids.length > 0) {
         const cosmeticIds = COSMETICS
           .filter((c) => c.achievementId && ids.includes(c.achievementId))
           .map((c) => c.id);
         if (cosmeticIds.length > 0) {
-          void addOwnedCosmetics(cosmeticIds);
+          void addOwnedCosmetics(cosmeticIds, "achievement");
         }
       }
     });
-  }, []); // intentionally empty — fire once on mount
+  }, [event, session, addOwnedCosmetics]);
 
   return newlyUnlocked;
 }

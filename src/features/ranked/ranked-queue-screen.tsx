@@ -15,12 +15,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, fonts, radii, spacing } from "@/design/tokens";
-import { getRandomOpponent } from "@/data/ranked-mock-data";
+import { colors, fonts, radii } from "@/design/tokens";
 import { getFullRankLabel, RANK_CONFIG, getWinrate } from "@/lib/ranked-logic";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { useRanked } from "@/lib/ranked-context";
 import type { RankedOpponent } from "@/types/ranked";
+import { useRankedBots } from "@/lib/supabase-hooks";
+import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 
 // ── Pulse ring (stays separate component – hooks rule) ────────────────────────
 
@@ -101,6 +102,7 @@ type Phase = "searching" | "found" | "countdown";
 export function RankedQueueScreen() {
   const reducedMotion = useReducedMotion();
   const { rankedProfile } = useRanked();
+  const { data: rankedBots, loading: rankedBotsLoading, error: rankedBotsError, refresh } = useRankedBots();
   const insets = useSafeAreaInsets();
   const [phase, setPhase] = useState<Phase>("searching");
   const [opponent, setOpponent] = useState<RankedOpponent | null>(null);
@@ -111,12 +113,15 @@ export function RankedQueueScreen() {
 
   // Step 1: find opponent
   useEffect(() => {
+    if (rankedBotsLoading || rankedBotsError || rankedBots.length === 0) return;
     timerRef.current = setTimeout(() => {
-      setOpponent(getRandomOpponent());
+      const sameTier = rankedBots.filter((bot) => bot.tier === rankedProfile.tier);
+      const pool = sameTier.length > 0 ? sameTier : rankedBots;
+      setOpponent(pool[Math.floor(Math.random() * pool.length)] ?? null);
       setPhase("found");
     }, 1400 + Math.random() * 800);
     return clearTimer;
-  }, []);
+  }, [rankedBots, rankedBotsError, rankedBotsLoading, rankedProfile.tier]);
 
   // Step 2: show VS card for 2s, then countdown
   useEffect(() => {
@@ -146,6 +151,22 @@ export function RankedQueueScreen() {
 
   const oppConfig = opponent ? RANK_CONFIG[opponent.tier] : null;
   const myWinrate = getWinrate(rankedProfile.wins, rankedProfile.losses);
+
+  if (rankedBotsLoading || rankedBotsError || rankedBots.length === 0) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.stageGrapeDeep, justifyContent: "center", paddingHorizontal: 24, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+        <DataStatePanel
+          title={rankedBotsLoading ? "Gegner werden geladen" : rankedBotsError ? "Matchmaking nicht erreichbar" : "Keine Gegner verfügbar"}
+          message={rankedBotsLoading ? "Die Gegnerliste kommt direkt aus Supabase." : rankedBotsError ?? "In der Datenbank ist aktuell kein aktiver Ranked-Bot vorhanden."}
+          loading={rankedBotsLoading}
+          onRetry={rankedBotsLoading ? undefined : () => void refresh()}
+        />
+        <Pressable onPress={() => router.back()} style={{ alignItems: "center", padding: 18 }}>
+          <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold }}>Zurück zur Arena</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.stageGrapeDeep }}>
