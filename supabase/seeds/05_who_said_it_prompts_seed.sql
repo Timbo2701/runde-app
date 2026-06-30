@@ -1,0 +1,37 @@
+-- Seed: "Wer hat das gesagt?" prompts for party_questions table
+-- Idempotent: safe to run multiple times
+
+INSERT INTO party_questions (mode, category, prompt, difficulty, is_active) VALUES
+('who_said_it', 'Alltag', 'Was wäre deine dümmste Ausrede, wenn du 2 Stunden zu spät kommst?', 1, true),
+('who_said_it', 'Schule', 'Was würdest du sagen, wenn du beim Spicken erwischt wirst?', 1, true),
+('who_said_it', 'Chaos', 'Was wäre dein letzter Satz vor einer komplett schlechten Entscheidung?', 2, true),
+('who_said_it', 'Chaos', 'Was würdest du in eine Gruppen-Nachricht schreiben, die du sofort bereust?', 2, true),
+('who_said_it', 'Alltag', 'Was wäre deine Begründung, warum du schon wieder Geld für Essen ausgegeben hast?', 1, true),
+('who_said_it', 'Sozial', 'Was würdest du sagen, wenn du aus Versehen jemanden eine Woche ignoriert hast?', 2, true),
+('who_said_it', 'Party', 'Was wäre dein Motto für einen absolut chaotischen Samstagabend?', 1, true),
+('who_said_it', 'Chaos', 'Was wäre deine Ausrede, wenn du beim Lügen erwischt wirst?', 2, true),
+('who_said_it', 'Träume', 'Was würdest du sagen, wenn du morgen plötzlich weltberühmt wärst?', 1, true),
+('who_said_it', 'Tiefsinn', 'Was wäre deine Nachricht an dein 10-jähriges Ich?', 3, true),
+('who_said_it', 'Witze', 'Was wäre deine absolut unnötige Superkraft?', 1, true),
+('who_said_it', 'Arbeit', 'Was würdest du sagen, wenn du für einen Tag Chef wärst?', 2, true),
+('who_said_it', 'Liebe', 'Was wäre dein schlechtester Ratschlag für jemanden Verliebten?', 2, true),
+('who_said_it', 'Chaos', 'Was wäre dein erster Satz, bevor alles eskaliert?', 2, true),
+('who_said_it', 'Alltag', 'Was würdest du sagen, wenn du beim heimlichen Snack nachts erwischt wirst?', 1, true),
+('who_said_it', 'Arbeit', 'Was wäre deine Antwort, wenn jemand fragt: Was machst du eigentlich beruflich?', 2, true),
+('who_said_it', 'Träume', 'Was würdest du tun, wenn du morgen 1 Million Euro hättest — aber du darfst es keinem sagen?', 2, true),
+('who_said_it', 'Sozial', 'Was wäre deine härteste Reaktion auf "Wir müssen reden"?', 3, true),
+('who_said_it', 'Witze', 'Was wäre dein absolut sinnloser Erfindungsvorschlag?', 1, true),
+('who_said_it', 'Chaos', 'Was würdest du posten, wenn du 24h nicht gecancelt werden kannst?', 3, true),
+('who_said_it', 'Witze', 'Was wäre dein erster Wunsch, wenn eine Fee erscheint — aber nur Mini-Wünsche?', 1, true),
+('who_said_it', 'Party', 'Was wäre dein schlimmster Icebreaker auf einer Party?', 2, true),
+('who_said_it', 'Spiele', 'Was würdest du sagen, wenn du bei einer Lügenrunde als letzter übrig bist?', 2, true),
+('who_said_it', 'Chaos', 'Was wäre dein Kommentar, wenn du überraschend ein TV-Interview gibst?', 2, true),
+('who_said_it', 'Träume', 'Was wäre deine erste Forderung als König oder Königin für einen Tag?', 2, true),
+('who_said_it', 'Alltag', 'Was wäre dein Alarm-Kommentar, wenn du mal wieder zu spät aufstehst?', 1, true),
+('who_said_it', 'Arbeit', 'Was wäre deine witzigste Reaktion auf "Du bist gefeuert"?', 2, true),
+('who_said_it', 'Alltag', 'Was wäre dein Tipp für den perfekten Abend — der nichts kostet?', 1, true),
+('who_said_it', 'Sozial', 'Was wäre dein bester Kompliment-Fail?', 2, true),
+('who_said_it', 'Chaos', 'Was würdest du deinen Eltern erklären müssen, wenn sie dein Handy durchschauen?', 3, true),
+('who_said_it', 'Alltag', 'Was wäre dein Ausruf, wenn du endlich eine langweilige Aufgabe fertig hast?', 1, true),
+('who_said_it', 'Tiefsinn', 'Was wäre deine ehrlichste Antwort auf "Wie geht es dir wirklich"?', 3, true)
+ON CONFLICT DO NOTHING;

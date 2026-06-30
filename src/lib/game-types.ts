@@ -4,7 +4,8 @@ export type GameModeType =
   | "blitz-quiz"
   | "bluff"
   | "zeichen-vote"
-  | "reihenfolge";
+  | "reihenfolge"
+  | "who_said_it";
 
 export type GameModeCategory =
   | "freundschaft"
@@ -12,7 +13,8 @@ export type GameModeCategory =
   | "kreativ"
   | "chaos"
   | "schnell"
-  | "schätzen";
+  | "schätzen"
+  | "party";
 
 export type GameModeDifficulty = "easy" | "medium" | "hard";
 
@@ -22,7 +24,8 @@ export type RoundType =
   | "multiple-choice" // Blitz-Quiz: A/B/C/D
   | "bluff"        // Bluff: Fake-Antworten schreiben + voten
   | "drawing"      // Zeichen-Vote: Zeichnen + anonym voten
-  | "ordering";    // Reihenfolge: Items sortieren
+  | "ordering"     // Reihenfolge: Items sortieren
+  | "who-said-it"; // Wer hat das gesagt?: Fake-Antworten + Raten
 
 export interface GameModeConfig {
   id: GameModeType;

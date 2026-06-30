@@ -10,6 +10,7 @@ import { BluffPlay } from "./modes/bluff-play";
 import { KlassikerPlay } from "./modes/klassiker-play";
 import { QuizPlay } from "./modes/quiz-play";
 import { SchaetzPlay } from "./modes/schaetz-play";
+import { WhoSaidItPlay } from "./modes/who-said-it-play";
 import { ZeichenVotePlay } from "./modes/zeichen-vote-play";
 
 const TOTAL_ROUNDS = 5;
@@ -20,6 +21,7 @@ const stageColorForMode: Record<string, string> = {
   "blitz-quiz": colors.stageGrape,
   bluff: colors.stageBerry,
   "zeichen-vote": colors.stageBerry,
+  who_said_it: colors.stageGrape,
 };
 
 const patternForMode: Record<string, "dots" | "rings"> = {
@@ -28,6 +30,7 @@ const patternForMode: Record<string, "dots" | "rings"> = {
   "blitz-quiz": "rings",
   bluff: "dots",
   "zeichen-vote": "rings",
+  who_said_it: "rings",
 };
 
 export function PlayScreen() {
@@ -117,6 +120,12 @@ export function PlayScreen() {
             onResult={(playerVotedFor) =>
               goToResults({ playerVotedFor, promptText: question.prompt })
             }
+          />
+        );
+      case "who_said_it":
+        return (
+          <WhoSaidItPlay
+            onBack={() => router.replace({ pathname: "/lobby", params: { code } })}
           />
         );
       default:
