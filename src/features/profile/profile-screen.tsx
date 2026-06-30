@@ -215,7 +215,7 @@ export function ProfileScreen() {
   const previewAchievements = achievements.slice(0, 4);
   const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
 
-  return (
+  return (<>
     <StageScreen stageColor={colors.stageCoral} pattern="dots" scrollEnabled>
       <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.canGoBack() ? router.back() : router.replace("/")} />
 
@@ -585,5 +585,5 @@ export function ProfileScreen() {
       <View style={{ height: 80 }} />
     </StageScreen>
     <BottomNav activeTab="profile" />
-  );
+  </>);
 }
