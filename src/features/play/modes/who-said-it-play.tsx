@@ -2,7 +2,7 @@
 // votes are generated after a delay. Replace with Supabase Realtime subscriptions
 // when backend is ready. The game logic (scoring, phase transitions) is production-ready.
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -45,6 +45,22 @@ const MOCK_FAKE_ANSWERS = [
   "Der Bus hatte Urlaub.",
   "Ich war zu entspannt zum Stressen.",
 ];
+
+function stableHash(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function stableShuffle<T>(items: T[], seed: string, keyOf: (item: T) => string): T[] {
+  return items
+    .map((item, index) => ({ item, index, score: stableHash(`${seed}:${keyOf(item)}`) }))
+    .sort((left, right) => left.score - right.score || left.index - right.index)
+    .map(({ item }) => item);
+}
 
 function getMockFake(existing: string[]): string {
   const unused = MOCK_FAKE_ANSWERS.filter((a) => !existing.includes(a));
@@ -279,8 +295,7 @@ function VotePhase({
   const isTarget = myPlayerId === round.targetPlayerId;
   const reducedMotion = useReducedMotion();
 
-  // Shuffle submissions once (stable during this phase)
-  const shuffled = useRef([...round.submissions].sort(() => Math.random() - 0.5));
+  const shuffled = stableShuffle(round.submissions, round.promptId, (submission) => submission.id);
 
   if (isTarget) {
     return (
@@ -318,7 +333,7 @@ function VotePhase({
       <PromptCard text={round.prompt.text} category={round.prompt.category} />
 
       <View style={{ gap: 10 }}>
-        {shuffled.current.map((sub, i) => {
+        {shuffled.map((sub, i) => {
           // Can't vote for own fake answer
           const isOwnFake = sub.playerId === myPlayerId && !sub.isRealAnswer;
           const isSelected = selected === sub.id;
@@ -420,31 +435,7 @@ function RevealPhase({
         <PhaseBadge label="AUFLÃ–SUNG ðŸŽ‰" />
       </Animated.View>
 
-      <PromptCard text={round.prompt.text} category={round.prompt.category} />
-
-      {/* Real answer */}
-      <Animated.View
-        entering={reducedMotion ? undefined : FadeInDown.delay(100).duration(300)}
-        style={{
-          backgroundColor: "rgba(255,216,77,0.12)",
-          borderRadius: radii.card,
-          borderWidth: 2,
-          borderColor: "rgba(255,216,77,0.6)",
-          padding: 18,
-          gap: 6,
-        }}
-      >
-        <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.5 }}>
-          âœ“ ECHTE ANTWORT â€” {round.targetPlayerName.toUpperCase()}
-        </Text>
-        <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16, lineHeight: 22 }}>
-          {realSub?.answerText}
-        </Text>
-      </Animated.View>
-
-      {/* Fake answers */}
-      {fakeSubs.map((sub, i) => {
-        const fooled = round.votes.filter((v) => v.selectedSubmissionId === sub.id).length;
+      <PromptCard text={round.prompt.textß]-¢G§²ÚîÆ­yÙd === sub.id).length;
         return (
           <Animated.View
             key={sub.id}
@@ -685,10 +676,7 @@ export function WhoSaidItPlay({ onBack }: Props) {
 
   const TOTAL_ROUNDS = Math.min(allPlayers.length, 4);
 
-  // Shuffle prompts
-  const prompts = useRef([...WHO_SAID_IT_PROMPTS].sort(() => Math.random() - 0.5).slice(0, TOTAL_ROUNDS));
-  const targetOrder = useRef([...allPlayers].sort(() => Math.random() - 0.5));
-
+  const [shuffleSeed, setShuffleSeed] = useState(0);
   const [playerScores, setPlayerScores] = useState<Record<string, number>>(
     Object.fromEntries(allPlayers.map((p) => [p.id, 0]))
   );
@@ -698,8 +686,10 @@ export function WhoSaidItPlay({ onBack }: Props) {
   const [votes, setVotes] = useState<WhoSaidItVote[]>([]);
   const [roundScores, setRoundScores] = useState<Record<string, number>>({});
 
-  const currentPrompt = prompts.current[currentRoundIdx];
-  const targetPlayer = targetOrder.current[currentRoundIdx % targetOrder.current.length];
+  const prompts = stableShuffle(WHO_SAID_IT_PROMPTS, `prompts:${myPlayer.id}:${shuffleSeed}`, (prompt) => prompt.id).slice(0, TOTAL_ROUNDS);
+  const targetOrder = stableShuffle(allPlayers, `targets:${myPlayer.id}:${shuffleSeed}`, (player) => player.id);
+  const currentPrompt = prompts[currentRoundIdx];
+  const targetPlayer = targetOrder[currentRoundIdx % targetOrder.length];
   const isMyTarget = targetPlayer.id === myPlayer.id;
 
   // Too few players check
@@ -828,8 +818,7 @@ export function WhoSaidItPlay({ onBack }: Props) {
   }
 
   function handleRestart() {
-    prompts.current = [...WHO_SAID_IT_PROMPTS].sort(() => Math.random() - 0.5).slice(0, TOTAL_ROUNDS);
-    targetOrder.current = [...allPlayers].sort(() => Math.random() - 0.5);
+    setShuffleSeed((seed) => seed + 1);
     setCurrentRoundIdx(0);
     setPlayerScores(Object.fromEntries(allPlayers.map((p) => [p.id, 0])));
     setSubmissions([]);

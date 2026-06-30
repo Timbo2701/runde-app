@@ -454,10 +454,12 @@ const ALL_QUESTIONS: Record<GameModeType, RoundQuestion[]> = {
   "bluff": BLUFF_QUESTIONS,
   "zeichen-vote": ZEICHEN_PROMPTS,
   "reihenfolge": [],
+  "who_said_it": [],
 };
 
 export function getQuestionsForMode(mode: GameModeType): RoundQuestion[] {
-  return ALL_QUESTIONS[mode] ?? KLASSIKER_QUESTIONS;
+  const questions = ALL_QUESTIONS[mode];
+  return questions.length > 0 ? questions : KLASSIKER_QUESTIONS;
 }
 
 export function getQuestion(mode: GameModeType, roundIndex: number): RoundQuestion {

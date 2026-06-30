@@ -367,7 +367,7 @@ export function ShopScreen() {
     return i.category === activeCategory;
   });
 
-  return (
+  return (<>
     <StageScreen stageColor={colors.stageGrapeDeep} pattern="rings" scrollEnabled>
       <AppHeader title="Shop" />
 
@@ -477,5 +477,5 @@ export function ShopScreen() {
       <View style={{ height: 80 }} />
     </StageScreen>
     <BottomNav activeTab="shop" />
-  );
+  </>);
 }

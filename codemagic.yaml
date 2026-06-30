@@ -30,6 +30,12 @@ workflows:
           npx expo config --type public >/dev/null
           echo "Supabase environment is present for Expo bundling."
 
+      - name: Validate app and iOS JavaScript bundle
+        script: |
+          set -eu
+          npm run validate
+          npx expo export --platform ios --no-bytecode --output-dir /tmp/runde-ios-preflight
+
       - name: Prebuild iOS (generate native project)
         script: npx expo prebuild --platform ios --clean
 

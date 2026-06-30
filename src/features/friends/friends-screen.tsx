@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View, type TextInput as TextInputType } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -174,7 +174,7 @@ export function FriendsScreen() {
   const searchRef = useRef<TextInputType>(null);
   const scrollRef = useRef<ScrollView>(null);
 
-  const loadFriends = async () => {
+  const loadFriends = useCallback(async () => {
     if (!userId) return;
     try {
       setLoading(true);
@@ -186,17 +186,21 @@ export function FriendsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
-  useEffect(() => { void loadFriends(); }, [userId]);
+  useEffect(() => {
+    const timer = setTimeout(() => void loadFriends(), 0);
+    return () => clearTimeout(timer);
+  }, [loadFriends]);
 
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
     searchTimer.current = setTimeout(async () => {
+      if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+        setSearchResults([]);
+        setSearching(false);
+        return;
+      }
       if (!userId) return;
       setSearching(true);
       try {
@@ -209,7 +213,7 @@ export function FriendsScreen() {
       } finally {
         setSearching(false);
       }
-    }, 400);
+    }, searchQuery.trim().length < 2 ? 0 : 400);
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [searchQuery, friends, userId]);
 
