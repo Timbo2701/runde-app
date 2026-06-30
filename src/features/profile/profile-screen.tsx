@@ -1,18 +1,21 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, Pressable, Share, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, Share, Switch, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { COSMETICS } from "@/data/cosmetics";
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { useAchievements } from "@/lib/use-achievements";
 import { getInitials } from "@/lib/room";
+import { useAuth } from "@/lib/auth-context";
 import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { usePlayerSettings } from "@/lib/supabase-hooks";
+import { updateProfileRecord, uploadAvatar } from "@/services/supabase-data";
 import type { Achievement } from "@/types/achievements";
 import { AppHeader } from "@/ui/primitives/app-header";
+import { BottomNav } from "@/ui/primitives/bottom-nav";
 import { BrandButton } from "@/ui/primitives/brand-button";
 import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 import { StageScreen } from "@/ui/primitives/stage-screen";
@@ -127,10 +130,12 @@ const SETTINGS_ROWS: { key: keyof Settings; label: string; sublabel: string; emo
 
 export function ProfileScreen() {
   const profile = useProfile();
+  const { session } = useAuth();
   const [tab, setTab] = useState<Tab>("profil");
   const [name, setName] = useState(profile.name || "");
   const [photo, setPhoto] = useState<string | null>(profile.photo);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings>({
     musik: true,
     soundeffekte: true,
@@ -188,7 +193,7 @@ export function ProfileScreen() {
   if (dataLoading || dataError) {
     return (
       <StageScreen stageColor={colors.stageCoral} pattern="dots">
-        <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.canGoBack() ? router.back() : router.replace("/")} />
+        <AppHeader title="Dein Profil" />
         <DataStatePanel
           title={dataLoading ? "Profil wird geladen" : "Profildaten nicht erreichbar"}
           message={dataLoading ? "Profil, Statistiken und Achievements kommen direkt aus Supabase." : dataError ?? "Bitte versuche es erneut."}
@@ -365,9 +370,32 @@ export function ProfileScreen() {
               value={name}
             />
             <BrandButton
-              disabled={!name.trim()}
-              label={saved ? "✓ Gespeichert" : "Profil speichern"}
-              onPress={() => { profile.setProfile({ name: name.trim(), photo }); setSaved(true); }}
+              disabled={!name.trim() || saving}
+              label={saving ? "Wird gespeichert…" : saved ? "✓ Gespeichert" : "Profil speichern"}
+              onPress={async () => {
+                if (!name.trim() || saving) return;
+                setSaving(true);
+                try {
+                  let avatarUrl: string | null = photo;
+                  if (photo && photo.startsWith("file://") && session) {
+                    avatarUrl = await uploadAvatar(session.user.id, photo);
+                  }
+                  profile.setProfile({ name: name.trim(), photo: avatarUrl });
+                  if (session) {
+                    await updateProfileRecord(session.user.id, {
+                      displayName: name.trim(),
+                      avatarUrl: avatarUrl ?? undefined,
+                    });
+                  }
+                  setSaved(true);
+                } catch {
+                  // silently keep local save
+                  profile.setProfile({ name: name.trim(), photo });
+                  setSaved(true);
+                } finally {
+                  setSaving(false);
+                }
+              }}
               tone="sun"
             />
           </Animated.View>
@@ -554,6 +582,8 @@ export function ProfileScreen() {
           </Animated.View>
         </Animated.View>
       )}
+      <View style={{ height: 80 }} />
     </StageScreen>
+    <BottomNav activeTab="profile" />
   );
 }

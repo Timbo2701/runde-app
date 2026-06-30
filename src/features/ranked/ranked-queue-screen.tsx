@@ -115,7 +115,7 @@ function CountdownDigit({ digit, reducedMotion }: { digit: number; reducedMotion
   const opacity = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
-    scale.value = withSpring(1, { damping: 8, stiffness: 180 });
+    scale.value = withSpring(1, { damping: 22, stiffness: 200 });
     opacity.value = withTiming(1, { duration: 120 });
   }, [digit]);
 
@@ -327,7 +327,7 @@ export function RankedQueueScreen() {
             style={{ alignItems: "center", gap: 28, width: "100%" }}
           >
             {/* Found label */}
-            <Animated.View entering={reducedMotion ? undefined : ZoomIn.duration(300).springify().damping(10)}>
+            <Animated.View entering={reducedMotion ? undefined : FadeIn.duration(250)}>
               <Text style={{
                 color: colors.sun,
                 fontFamily: fonts.displayExtraBold,

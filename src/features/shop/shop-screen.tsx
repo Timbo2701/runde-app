@@ -9,6 +9,7 @@ import { useProfile } from "@/lib/profile-context";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import type { ShopCategory, ShopItem } from "@/types/shop";
 import { AppHeader } from "@/ui/primitives/app-header";
+import { BottomNav } from "@/ui/primitives/bottom-nav";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 
 type CategoryFilter = "all" | ShopCategory;
@@ -368,11 +369,7 @@ export function ShopScreen() {
 
   return (
     <StageScreen stageColor={colors.stageGrapeDeep} pattern="rings" scrollEnabled>
-      <AppHeader
-        title="Shop"
-        actionLabel="Zurück"
-        onAction={() => (router.canGoBack() ? router.back() : router.replace("/"))}
-      />
+      <AppHeader title="Shop" />
 
       {/* Hero */}
       <Animated.View
@@ -477,6 +474,8 @@ export function ShopScreen() {
           digitale Güter. Kein Pay-to-Win.
         </Text>
       </Animated.View>
+      <View style={{ height: 80 }} />
     </StageScreen>
+    <BottomNav activeTab="shop" />
   );
 }

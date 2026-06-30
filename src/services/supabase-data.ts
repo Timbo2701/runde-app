@@ -409,6 +409,7 @@ export type UserSearchResult = {
   id: string;
   displayName: string;
   avatarInitials: string;
+  isBot?: boolean;
 };
 
 export async function fetchFriends(userId: string): Promise<FriendRecord[]> {
@@ -439,11 +440,10 @@ export async function searchUsers(query: string, currentUserId: string): Promise
   if (query.trim().length < 2) return [];
   const { data, error } = await getSupabase()
     .from("profiles")
-    .select("id, display_name, avatar_initials")
+    .select("id, display_name, avatar_initials, is_bot")
     .ilike("display_name", `%${query.trim()}%`)
     .neq("id", currentUserId)
-    .eq("is_bot", false)
-    .limit(10);
+    .limit(20);
   if (error) throw error;
   return (data ?? []).map((value) => {
     const row = asObject(value);
@@ -451,8 +451,23 @@ export async function searchUsers(query: string, currentUserId: string): Promise
       id: asString(row.id),
       displayName: asString(row.display_name, "Runde Spieler"),
       avatarInitials: asString(row.avatar_initials, "R"),
+      isBot: asBoolean(row.is_bot),
     };
   });
+}
+
+export async function uploadAvatar(userId: string, localUri: string): Promise<string> {
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const ext = localUri.split(".").pop()?.toLowerCase() ?? "jpg";
+  const path = `${userId}/avatar.${ext}`;
+  const { error } = await getSupabase()
+    .storage
+    .from("avatars")
+    .upload(path, blob, { upsert: true, contentType: `image/${ext === "jpg" ? "jpeg" : ext}` });
+  if (error) throw error;
+  const { data } = getSupabase().storage.from("avatars").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export async function sendFriendRequest(requesterId: string, addresseeId: string): Promise<void> {

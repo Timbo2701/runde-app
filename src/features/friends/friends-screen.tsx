@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View, type TextInput as TextInputType } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, fonts, radii } from "@/design/tokens";
@@ -119,9 +119,22 @@ function SearchRow({ user, onAdd, sent }: { user: UserSearchResult; onAdd: () =>
       marginBottom: 8,
     }}>
       <Avatar initials={user.avatarInitials} size={40} />
-      <Text style={{ flex: 1, color: colors.white, fontFamily: fonts.bodySemiBold, fontSize: 15 }}>
-        {user.displayName}
-      </Text>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: colors.white, fontFamily: fonts.bodySemiBold, fontSize: 15 }}>
+          {user.displayName}
+        </Text>
+        {user.isBot && (
+          <View style={{
+            flexDirection: "row", alignItems: "center", gap: 4,
+            alignSelf: "flex-start",
+            backgroundColor: "rgba(168,85,247,0.18)",
+            borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+            borderWidth: 1, borderColor: "rgba(168,85,247,0.4)",
+          }}>
+            <Text style={{ color: "rgba(168,85,247,0.9)", fontFamily: fonts.bodyBold, fontSize: 10 }}>BOT</Text>
+          </View>
+        )}
+      </View>
       <Pressable
         onPress={onAdd}
         disabled={sent}
@@ -158,6 +171,8 @@ export function FriendsScreen() {
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRef = useRef<TextInputType>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const loadFriends = async () => {
     if (!userId) return;
@@ -244,9 +259,29 @@ export function FriendsScreen() {
         borderBottomWidth: 1,
         borderBottomColor: colors.whiteFaint,
       }}>
-        <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 26 }}>
-          Friends
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 26 }}>
+            Friends
+          </Text>
+          <Pressable
+            onPress={() => {
+              scrollRef.current?.scrollTo({ y: 0, animated: true });
+              setTimeout(() => searchRef.current?.focus(), 200);
+            }}
+            style={({ pressed }) => ({
+              width: 40, height: 40, borderRadius: 20,
+              backgroundColor: colors.stageGrape,
+              alignItems: "center", justifyContent: "center",
+              shadowColor: colors.stageGrape,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.6, shadowRadius: 8,
+              opacity: pressed ? 0.75 : 1,
+            })}
+            accessibilityLabel="Freund hinzufügen"
+          >
+            <Text style={{ color: colors.white, fontSize: 22, lineHeight: 24, fontFamily: fonts.displayExtraBold }}>+</Text>
+          </Pressable>
+        </View>
         {incomingCount > 0 && (
           <View style={{
             marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6,
@@ -263,6 +298,7 @@ export function FriendsScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         keyboardShouldPersistTaps="handled"
@@ -278,9 +314,10 @@ export function FriendsScreen() {
         }}>
           <Text style={{ color: "rgba(255,255,255,0.4)", fontSize: 16 }}>🔍</Text>
           <TextInput
+            ref={searchRef}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Spieler suchen…"
+            placeholder="Name eingeben…"
             placeholderTextColor="rgba(255,255,255,0.3)"
             style={{ flex: 1, color: colors.white, fontFamily: fonts.body, fontSize: 15, paddingVertical: 12 }}
             autoCapitalize="none"

@@ -63,7 +63,7 @@ function LpDeltaBadge({ delta, reducedMotion }: { delta: number; reducedMotion: 
   const won = delta > 0;
 
   useEffect(() => {
-    scale.value = withDelay(400, withSpring(1, { damping: 8, stiffness: 160 }));
+    scale.value = withDelay(400, withSpring(1, { damping: 22, stiffness: 200 }));
   }, []);
 
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -204,7 +204,7 @@ export function RankedResultScreen() {
       >
         {/* ── Hero ── */}
         <Animated.View
-          entering={reducedMotion ? undefined : ZoomIn.duration(380).springify().damping(11)}
+          entering={reducedMotion ? undefined : FadeInDown.duration(350)}
           style={{ alignItems: "center", gap: 10, paddingVertical: 8 }}
         >
           <Text style={{ fontSize: 64 }}>{result.won ? "🏆" : "🛡️"}</Text>
@@ -306,7 +306,7 @@ export function RankedResultScreen() {
 
             {lpChanges.rankUp && (
               <Animated.View
-                entering={reducedMotion ? undefined : ZoomIn.delay(900).springify()}
+                entering={reducedMotion ? undefined : FadeInDown.delay(900).duration(300)}
                 style={{
                   padding: 14, borderRadius: radii.control,
                   backgroundColor: "rgba(255,216,77,0.12)",
