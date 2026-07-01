@@ -16,6 +16,7 @@ import {
 import type { PartyQuestion } from "@/services/supabase-data";
 import type { BattlePassReward, DailyMission, LeaderboardEntry, MindClashQuestion, RankedOpponent } from "@/types/ranked";
 import type { BattlePassProgressRecord, CosmeticOwnershipRecord, PlayerSettingsRecord } from "@/types/supabase";
+import { publishSettings, subscribeToSettings } from "@/services/settings-broadcast";
 
 const EMPTY_BOTS: RankedOpponent[] = [];
 const EMPTY_QUESTIONS: MindClashQuestion[] = [];
@@ -65,7 +66,7 @@ function useRemoteData<T>(load: () => Promise<T>, initialData: T, enabled: boole
     return () => clearTimeout(timer);
   }, [refresh]);
 
-  return { data, loading, error, refresh };
+  return { data, loading, error, refresh, updateData: setData };
 }
 
 export function useRankedBots() {
@@ -118,7 +119,8 @@ export function useBattlePass() {
 
 export function useBattlePassRewards() {
   const { session } = useAuth();
-  const load = useCallback(() => fetchBattlePassRewards(), []);
+  const userId = session?.user.id;
+  const load = useCallback(() => fetchBattlePassRewards(userId), [userId]);
   return useRemoteData(load, EMPTY_REWARDS, Boolean(session));
 }
 
@@ -132,11 +134,21 @@ export function usePlayerSettings() {
     return settings;
   }, [userId]);
   const remote = useRemoteData(load, DEFAULT_SETTINGS, Boolean(session));
+
+  useEffect(() => subscribeToSettings(remote.updateData), [remote.updateData]);
+
   const save = useCallback(async (settings: PlayerSettingsRecord) => {
     if (!userId) throw new Error("Zum Speichern ist eine Anmeldung erforderlich.");
     await updateSettingsRecord(userId, settings);
+    publishSettings(settings);
   }, [userId]);
-  return { ...remote, save };
+  return {
+    data: remote.data,
+    loading: remote.loading,
+    error: remote.error,
+    refresh: remote.refresh,
+    save,
+  };
 }
 
 export function usePartyQuestions(mode: string) {

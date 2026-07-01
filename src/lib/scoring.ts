@@ -14,7 +14,7 @@ export interface RoundScoreResult {
 }
 
 export interface SchaetzRoundScoreResult extends RoundScoreResult {
-  ranked: Array<{
+  ranked: {
     playerId: string;
     playerName: string;
     guess: number;
@@ -22,12 +22,12 @@ export interface SchaetzRoundScoreResult extends RoundScoreResult {
     rank: number;
     points: number;
     badge?: string;
-  }>;
+  }[];
 }
 
 // Klassiker: winner=3pts, tie=1pt each, others=1pt
 export function calculateKlassikerScore(
-  players: Array<{ id: string; name: string }>,
+  players: { id: string; name: string }[],
   votes: Record<string, number> // playerId → vote count
 ): RoundScoreResult {
   const sorted = [...players].sort((a, b) => (votes[b.id] ?? 0) - (votes[a.id] ?? 0));
@@ -56,7 +56,7 @@ export function calculateKlassikerScore(
 
 // Schätzrunde: 1st=3pts, 2nd=2pts, 3rd=1pt, exact=+1 bonus
 export function calculateSchaetzScore(
-  guesses: Array<{ playerId: string; playerName: string; guess: number }>,
+  guesses: { playerId: string; playerName: string; guess: number }[],
   correctAnswer: number
 ): SchaetzRoundScoreResult {
   const withDeviation = guesses.map((g) => ({
@@ -98,7 +98,7 @@ export function calculateSchaetzScore(
 
 // Quiz: correct=2pts, wrong=0pts
 export function calculateQuizScore(
-  answers: Array<{ playerId: string; playerName: string; answer: string }>,
+  answers: { playerId: string; playerName: string; answer: string }[],
   correctAnswer: string
 ): RoundScoreResult {
   const events: RoundScoreEvent[] = answers.map((a) => {
@@ -125,12 +125,12 @@ export function calculateQuizScore(
 
 // Bluff: correct answer chosen=2pts, each vote on your fake=+1pt
 export function calculateBluffScore(
-  playerAnswers: Array<{
+  playerAnswers: {
     playerId: string;
     playerName: string;
     fakeAnswer: string;
     vote: string; // the answer they voted for
-  }>,
+  }[],
   correctAnswer: string
 ): RoundScoreResult {
   const events: RoundScoreEvent[] = playerAnswers.map((p) => {
@@ -173,7 +173,7 @@ export function calculateBluffScore(
 // Final ranking across all rounds
 export function calculateFinalRanking(
   allRoundEvents: RoundScoreEvent[][]
-): Array<{ playerId: string; playerName: string; totalPoints: number; rank: number }> {
+): { playerId: string; playerName: string; totalPoints: number; rank: number }[] {
   const totals: Record<string, { playerName: string; totalPoints: number }> = {};
 
   for (const roundEvents of allRoundEvents) {

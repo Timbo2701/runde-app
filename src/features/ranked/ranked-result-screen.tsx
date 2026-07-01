@@ -5,7 +5,6 @@ import Animated, {
   FadeIn,
   FadeInDown,
   FadeInUp,
-  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withDelay,

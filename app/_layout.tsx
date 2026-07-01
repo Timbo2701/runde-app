@@ -16,6 +16,7 @@ import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { colors } from "@/design/tokens";
+import { AppAudioController } from "@/services/app-audio-controller";
 
 function SessionRedirect() {
   const { configured, loading, session, profile } = useAuth();
@@ -64,6 +65,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
+        <AppAudioController />
         <ProfileProvider>
           <RankedProvider>
             <StatusBar style="light" />

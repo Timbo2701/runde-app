@@ -2,7 +2,7 @@
   "expo": {
     "name": "Runde",
     "slug": "runde",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "runde",
@@ -14,13 +14,13 @@
     },
     "ios": {
       "bundleIdentifier": "com.runde.app",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "icon": "./assets/icon.png",
       "supportsTablet": false
     },
     "android": {
       "package": "com.runde.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#C52A87"
@@ -33,7 +33,8 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true

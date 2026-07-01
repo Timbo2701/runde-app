@@ -32,7 +32,7 @@ export function HomeScreen() {
   return (
     <View style={{ flex: 1 }}>
     <StageScreen stageColor={colors.stageBerry} pattern="confetti">
-      <AppHeader showBrand actionLabel="Profil" onAction={() => router.push("/profile")} />
+      <AppHeader showBrand />
 
       <Animated.View
         entering={reducedMotion ? undefined : FadeInUp.duration(260)}

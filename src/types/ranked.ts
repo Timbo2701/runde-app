@@ -84,8 +84,8 @@ export interface LeaderboardEntry {
 
 export interface BattlePassReward {
   level: number;
-  free: { emoji: string; label: string; type: string };
-  premium?: { emoji: string; label: string; type: string };
+  free: { emoji: string; label: string; type: string; claimed: boolean };
+  premium?: { emoji: string; label: string; type: string; claimed: boolean };
 }
 
 export interface DailyMission {

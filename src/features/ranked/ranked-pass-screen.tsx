@@ -1,5 +1,6 @@
 import { router } from "expo-router";
-import { Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
@@ -7,15 +8,39 @@ import { useRanked } from "@/lib/ranked-context";
 import { calculateBattlePassLevel } from "@/lib/battle-pass-logic";
 import { useBattlePassRewards } from "@/lib/supabase-hooks";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { claimBattlePassReward } from "@/services/supabase-data";
 import { AppHeader } from "@/ui/primitives/app-header";
 import { StageScreen } from "@/ui/primitives/stage-screen";
 import { BottomNav } from "@/ui/primitives/bottom-nav";
 import { DataStatePanel } from "@/ui/primitives/data-state-panel";
 import type { BattlePassReward } from "@/types/ranked";
 
-function RewardRow({ reward, currentLevel }: { reward: BattlePassReward; currentLevel: number }) {
+function RewardRow({
+  reward,
+  currentLevel,
+  onClaimed,
+}: {
+  reward: BattlePassReward;
+  currentLevel: number;
+  onClaimed: () => void;
+}) {
+  const [claiming, setClaiming] = useState(false);
   const isCurrent = reward.level === currentLevel;
   const isUnlocked = reward.level <= currentLevel;
+  const canClaim = isUnlocked && !reward.free.claimed;
+
+  const handleClaim = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      await claimBattlePassReward(reward.level, "free");
+      onClaimed();
+    } catch {
+      // network hiccup — button just resets, user can tap again
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   return (
     <View style={{
@@ -89,18 +114,34 @@ function RewardRow({ reward, currentLevel }: { reward: BattlePassReward; current
         )}
       </View>
 
-      {/* Status */}
-      {isUnlocked && !isCurrent && (
+      {/* Status / Claim */}
+      {reward.free.claimed ? (
         <Text style={{ fontSize: 14 }}>✅</Text>
-      )}
-      {isCurrent && (
+      ) : canClaim ? (
+        <Pressable
+          onPress={() => void handleClaim()}
+          disabled={claiming}
+          accessibilityRole="button"
+          style={({ pressed }) => ({
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            borderRadius: radii.round,
+            backgroundColor: colors.sun,
+            opacity: pressed || claiming ? 0.75 : 1,
+          })}
+        >
+          <Text style={{ color: colors.ink, fontFamily: fonts.bodyBold, fontSize: 11 }}>
+            {claiming ? "…" : "Einlösen"}
+          </Text>
+        </Pressable>
+      ) : isCurrent ? (
         <View style={{
           width: 10,
           height: 10,
           borderRadius: 5,
           backgroundColor: colors.sun,
         }} />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -229,7 +270,7 @@ export function RankedPassScreen() {
               key={reward.level}
               entering={reducedMotion ? undefined : FadeInDown.delay(i * 25).duration(200)}
             >
-              <RewardRow reward={reward} currentLevel={computedLevel} />
+              <RewardRow reward={reward} currentLevel={computedLevel} onClaimed={() => void refresh()} />
             </Animated.View>
           ))}
         </View>

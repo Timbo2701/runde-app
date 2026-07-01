@@ -252,16 +252,30 @@ export function RankedHomeScreen() {
             <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
               Tagesmissionen
             </Text>
-            <View style={{
-              paddingHorizontal: 8,
-              paddingVertical: 3,
-              borderRadius: radii.round,
-              backgroundColor: colors.stageGrape,
-            }}>
-              <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 11 }}>
-                {rankedProfile.dailyMissionsCompleted}/{rankedProfile.totalMissions}
+            <Pressable
+              onPress={() => router.push("/ranked/missions" as never)}
+              accessibilityRole="button"
+              style={({ pressed }) => ({
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                opacity: pressed ? 0.75 : 1,
+              })}
+            >
+              <View style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: radii.round,
+                backgroundColor: colors.stageGrape,
+              }}>
+                <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 11 }}>
+                  {rankedProfile.dailyMissionsCompleted}/{rankedProfile.totalMissions}
+                </Text>
+              </View>
+              <Text style={{ color: colors.whiteSoft, fontFamily: fonts.bodySemiBold, fontSize: 12 }}>
+                Alle ansehen →
               </Text>
-            </View>
+            </Pressable>
           </View>
 
           {missions.slice(0, 2).map((mission) => (

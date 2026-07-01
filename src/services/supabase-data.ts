@@ -316,24 +316,51 @@ export async function fetchBattlePass(userId: string): Promise<BattlePassProgres
   };
 }
 
-export async function fetchBattlePassRewards(): Promise<BattlePassReward[]> {
+export async function fetchBattlePassRewards(userId?: string): Promise<BattlePassReward[]> {
   const { data, error } = await getSupabase()
     .from("battle_pass_rewards")
     .select("level, track, reward_type, title, icon, battle_passes!inner(is_active)")
     .eq("battle_passes.is_active", true)
     .order("level", { ascending: true });
   if (error) throw error;
+
+  let claimedKeys = new Set<string>();
+  if (userId) {
+    const { data: claims, error: claimsError } = await getSupabase()
+      .from("user_battle_pass_claims")
+      .select("level, track")
+      .eq("user_id", userId);
+    if (claimsError) throw claimsError;
+    claimedKeys = new Set((claims ?? []).map((c) => `${asNumber(asObject(c).level)}:${asString(asObject(c).track)}`));
+  }
+
   const byLevel = new Map<number, BattlePassReward>();
   for (const value of data ?? []) {
     const row = asObject(value);
     const level = asNumber(row.level);
-    const reward = { emoji: asString(row.icon, "✨"), label: asString(row.title), type: asString(row.reward_type) };
-    const current = byLevel.get(level) ?? { level, free: { emoji: "💬", label: `+${level * 50} Season XP`, type: "xp" } };
-    if (row.track === "premium") current.premium = reward;
+    const track = asString(row.track);
+    const reward = {
+      emoji: asString(row.icon, "✨"),
+      label: asString(row.title),
+      type: asString(row.reward_type),
+      claimed: claimedKeys.has(`${level}:${track}`),
+    };
+    const current = byLevel.get(level) ?? {
+      level,
+      free: { emoji: "💬", label: `+${level * 50} Season XP`, type: "xp", claimed: claimedKeys.has(`${level}:free`) },
+    };
+    if (track === "premium") current.premium = reward;
     else current.free = reward;
     byLevel.set(level, current);
   }
   return [...byLevel.values()];
+}
+
+export async function claimBattlePassReward(level: number, track: "free" | "premium"): Promise<{ grantedCosmetic: boolean; rewardTitle: string }> {
+  const { data, error } = await getSupabase().rpc("claim_battle_pass_reward", { p_level: level, p_track: track });
+  if (error) throw error;
+  const row = asObject(data);
+  return { grantedCosmetic: asBoolean(row.granted_cosmetic), rewardTitle: asString(row.reward_title) };
 }
 
 export async function fetchCosmeticOwnership(userId: string): Promise<CosmeticOwnershipRecord> {

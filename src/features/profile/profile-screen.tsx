@@ -1,7 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, Pressable, Share, Switch, Text, View } from "react-native";
+import { Image, Pressable, Share, Switch, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { COSMETICS } from "@/data/cosmetics";
@@ -41,13 +41,15 @@ function CameraIcon() {
   );
 }
 
-function AchievementPill({ achievement }: { achievement: Achievement }) {
+// Compact "small style" tile — used for the 3-item preview row on the
+// profile. The full list with progress bars lives on /achievements.
+function AchievementMiniTile({ achievement }: { achievement: Achievement }) {
   return (
     <View
       style={{
-        flexDirection: "row",
+        flex: 1,
         alignItems: "center",
-        gap: 8,
+        gap: 6,
         backgroundColor: achievement.isUnlocked
           ? "rgba(255,216,77,0.15)"
           : "rgba(255,255,255,0.06)",
@@ -56,66 +58,42 @@ function AchievementPill({ achievement }: { achievement: Achievement }) {
           ? "rgba(255,216,77,0.4)"
           : "rgba(255,255,255,0.1)",
         borderRadius: radii.control,
-        paddingHorizontal: 12,
-        paddingVertical: 9,
+        paddingVertical: 12,
+        paddingHorizontal: 6,
       }}
     >
-      <Text style={{ fontSize: 20, opacity: achievement.isUnlocked ? 1 : 0.4 }}>
+      <Text style={{ fontSize: 22, opacity: achievement.isUnlocked ? 1 : 0.4 }}>
         {achievement.emoji}
       </Text>
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text
-          style={{
-            color: achievement.isUnlocked ? colors.white : colors.whiteSoft,
-            fontFamily: fonts.bodySemiBold,
-            fontSize: 13,
-            opacity: achievement.isUnlocked ? 1 : 0.6,
-          }}
-        >
-          {achievement.title}
-        </Text>
-        {achievement.progress && !achievement.isUnlocked && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <View
-              style={{
-                flex: 1,
-                height: 3,
-                borderRadius: 2,
-                backgroundColor: "rgba(255,255,255,0.12)",
-                overflow: "hidden",
-              }}
-            >
-              <View
-                style={{
-                  height: 3,
-                  width: `${Math.min(
-                    100,
-                    (achievement.progress.current / achievement.progress.target) * 100
-                  )}%`,
-                  borderRadius: 2,
-                  backgroundColor: colors.sun,
-                }}
-              />
-            </View>
-            <Text style={{ color: colors.whiteSoft, fontFamily: fonts.mono, fontSize: 10 }}>
-              {achievement.progress.current}/{achievement.progress.target}
-            </Text>
-          </View>
-        )}
-      </View>
-      {achievement.isUnlocked && (
+      <Text
+        numberOfLines={1}
+        style={{
+          color: achievement.isUnlocked ? colors.white : colors.whiteSoft,
+          fontFamily: fonts.bodySemiBold,
+          fontSize: 11,
+          opacity: achievement.isUnlocked ? 1 : 0.6,
+          textAlign: "center",
+        }}
+      >
+        {achievement.title}
+      </Text>
+      {achievement.isUnlocked ? (
         <View
           style={{
-            width: 20,
-            height: 20,
-            borderRadius: 10,
+            width: 16,
+            height: 16,
+            borderRadius: 8,
             backgroundColor: colors.sun,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: colors.ink, fontSize: 10, fontFamily: fonts.bodyBold }}>✓</Text>
+          <Text style={{ color: colors.ink, fontSize: 9, fontFamily: fonts.bodyBold }}>✓</Text>
         </View>
+      ) : (
+        <Text style={{ color: colors.whiteSoft, fontFamily: fonts.mono, fontSize: 9, opacity: 0.7 }}>
+          {achievement.progress ? `${achievement.progress.current}/${achievement.progress.target}` : "🔒"}
+        </Text>
       )}
     </View>
   );
@@ -212,12 +190,12 @@ export function ProfileScreen() {
   ];
 
   const { achievements } = achievementsState;
-  const previewAchievements = achievements.slice(0, 4);
+  const previewAchievements = achievements.slice(0, 3);
   const unlockedCount = achievements.filter((a) => a.isUnlocked).length;
 
   return (<>
     <StageScreen stageColor={colors.stageCoral} pattern="dots" scrollEnabled>
-      <AppHeader title="Dein Profil" actionLabel="Zurück" onAction={() => router.canGoBack() ? router.back() : router.replace("/")} />
+      <AppHeader title="Dein Profil" />
 
       {/* Tab-Switcher */}
       <Animated.View
@@ -400,26 +378,38 @@ export function ProfileScreen() {
             />
           </Animated.View>
 
-          {/* Achievements Preview */}
+          {/* Achievements Preview — 3 compact tiles, full list on /achievements */}
           <View style={{ gap: 12 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
                 Achievements
               </Text>
-              <View style={{
-                backgroundColor: "rgba(255,216,77,0.2)",
-                paddingHorizontal: 10,
-                paddingVertical: 3,
-                borderRadius: radii.round,
-              }}>
-                <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 11 }}>
-                  {unlockedCount}/{achievements.length}
-                </Text>
-              </View>
+              <Pressable
+                onPress={() => router.push("/achievements" as never)}
+                accessibilityRole="button"
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              >
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  backgroundColor: "rgba(255,216,77,0.2)",
+                  paddingHorizontal: 10,
+                  paddingVertical: 3,
+                  borderRadius: radii.round,
+                }}>
+                  <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 11 }}>
+                    {unlockedCount}/{achievements.length}
+                  </Text>
+                  <Text style={{ color: colors.sun, fontFamily: fonts.bodyBold, fontSize: 11 }}>
+                    Alle →
+                  </Text>
+                </View>
+              </Pressable>
             </View>
-            <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
               {previewAchievements.map((a) => (
-                <AchievementPill key={a.id} achievement={a} />
+                <AchievementMiniTile key={a.id} achievement={a} />
               ))}
             </View>
           </View>

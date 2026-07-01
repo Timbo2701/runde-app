@@ -4,7 +4,6 @@ import { Pressable, Text, View } from "react-native";
 import Animated, {
   FadeIn,
   FadeInUp,
-  ZoomIn,
   useAnimatedStyle,
   useSharedValue,
   withDelay,

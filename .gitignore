@@ -39,3 +39,11 @@ expo-env.d.ts
 
 # QA screenshots (local test artifacts, not shipped)
 screenshots/
+
+# Local agent/plugin installations and generated worktrees
+.agents/
+.claude/
+skills-lock.json
+
+# Local marketing-video sources and render outputs
+video-build/
