@@ -115,6 +115,35 @@ nothing here is speculative.
   placeholders — not yet available). This is intentional per current product
   state, not a bug.
 
+### 6. "Wer hat das gesagt?" — minimum-player guard is unreachable dead code
+- **Found via live Playwright walkthrough** (2026-07-01): created a lobby
+  with only 2 real/mock lobby members, selected "Wer hat das gesagt?", hit
+  "Spiel starten" — the mode started directly into the write phase instead
+  of showing the documented "Zu wenige Spieler" screen.
+- **Root cause**: `who-said-it-play.tsx` builds `allPlayers` as `[myPlayer,
+  ...MOCK_PLAYERS]` where `MOCK_PLAYERS` is a hardcoded 3-entry array (Alex,
+  Mia, Jonas) — so `allPlayers.length` is always exactly 4, regardless of
+  how many real people are actually in the room. The `if (allPlayers.length
+  < 3)` guard a few lines later can therefore never be true; it's dead code.
+  This matches the documented MOCK status in `docs/WHO_SAID_IT.md` (the mode
+  doesn't read real room roster yet), but the guard existing at all implies
+  it's supposed to protect against a real 1-2 person room, which it
+  currently cannot do — a host with 2 real friends in a room will be told
+  nothing and dropped straight into a "multiplayer" round played entirely
+  against hardcoded bots.
+- **Not fixed this pass**: the correct fix is wiring `allPlayers` from the
+  actual room/lobby roster (whatever hook the other party modes use, e.g.
+  `useRoom()`), which is the same "replace MOCK with Supabase Realtime" work
+  already tracked as a known follow-up in `docs/WHO_SAID_IT.md` — not a
+  small isolated bug fix, so left out of scope for this QA pass to avoid
+  touching the mode's core data flow without dedicated testing time.
+- **Verified working correctly in this pass**: write phase (identical visual
+  weight for target vs. fake-writer role hint, own submission correctly
+  disabled for voting), vote phase (own fake answer correctly greyed out/
+  unselectable), reveal phase (real answer gold-highlighted, fake answers
+  correctly attributed, own submission labelled), no console errors through
+  the full write→vote→reveal loop.
+
 ## NOT AUDITED THIS PASS (scope/time)
 Given the size of the app, the following areas were **not** independently
 re-verified beyond what was already touched by recent commits (`d5988f1`,
