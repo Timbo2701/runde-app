@@ -1,15 +1,12 @@
 workflows:
   ios-build:
-    name: Runde iOS 1.0.1 (App Store)
+    name: Runde iOS (unsigned IPA)
     max_build_duration: 60
     instance_type: mac_mini_m2
 
     environment:
       groups:
         - supabase
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.runde.app
       node: 22.13.0
       xcode: latest
       cocoapods: default
@@ -47,20 +44,30 @@ workflows:
           cd ios
           pod install
 
-      - name: Apply App Store signing profiles
-        script: xcode-project use-profiles
-
-      - name: Build signed IPA
-        script: xcode-project build-ipa --workspace ios/Runde.xcworkspace --scheme Runde
+      - name: Build unsigned IPA
+        script: |
+          set -eu
+          xcodebuild \
+            -workspace ios/Runde.xcworkspace \
+            -scheme Runde \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+          mkdir -p build/unsigned
+          cp -r build/Build/Products/Release-iphoneos/Runde.app build/unsigned/
+          cd build/unsigned
+          mkdir Payload
+          cp -r Runde.app Payload/
+          zip -r Runde.ipa Payload/
 
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/unsigned/Runde.ipa
       - /tmp/xcodebuild_logs/*.log
 
     publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
       email:
         recipients:
           - tim.mery02@gmail.com

@@ -10,7 +10,7 @@ this audit need attention first (below).
 ## What's fixed and safe to ship as-is
 - **Routenbasierte Musik und Ergebnis-Sounds**: Lobby- und Ranked-Musik laufen exklusiv und wiederholen sich. Gewinner-/Verlierer-Sounds stoppen nach acht Sekunden; Profil-Einstellungen greifen ohne Neustart.
 - **Party-Startscreen**: Der Profil-Button oben rechts wurde entfernt. Die Profilnavigation bleibt ueber die untere Navigation erreichbar.
-- **Codemagic**: Der iOS-Workflow erzeugt eine signierte App-Store-IPA und uebergibt erfolgreiche Builds an TestFlight. Dafuer muessen in Codemagic die iOS-Zertifikate/Provisioning Profiles und eine App-Store-Connect-Integration fuer `com.runde.app` hinterlegt sein.
+- **Codemagic**: Der iOS-Workflow bleibt bewusst unsigned und erzeugt `build/unsigned/Runde.ipa` fuer die anschliessende Installation ueber Signulous. App Store Connect, iOS-Signing und Shop-Zahlungen sind nicht verbunden.
 - **Battle Pass XP/level display** (`src/features/ranked/ranked-pass-screen.tsx`):
   now computes level and in-level progress via `calculateBattlePassLevel()`
   (`src/lib/battle-pass-logic.ts`), which mirrors the server's formula
