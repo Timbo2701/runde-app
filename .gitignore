@@ -36,3 +36,6 @@ coverage/
 
 # TypeScript (auto-generated)
 expo-env.d.ts
+
+# QA screenshots (local test artifacts, not shipped)
+screenshots/

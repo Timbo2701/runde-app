@@ -1,4 +1,4 @@
-# Known Issues — Runde! (QA Audit 2026-07-01)
+# Known Issues — Runde! (QA Audit 2026-07-01, updated same day)
 
 Audited against live Supabase project `wiqdxzuewutnynjvvmop`. Each item below was
 verified by reading actual source files and/or querying the real database —
@@ -45,51 +45,59 @@ nothing here is speculative.
   noting that mode's questions come from the `party_questions` Supabase table
   via `fetchPartyQuestions`, not this static file.
 
+### 2. Daily/weekly mission rewards were never actually credited — FIXED
+- **Root cause**: `missions.reward_xp` was computed and shown in the UI, but no
+  code path (client or Postgres function) ever added it to
+  `user_battle_pass_progress.xp` when `user_missions.completed` flipped to
+  `true`. Missions completed and showed a checkmark, but the promised XP
+  never landed anywhere.
+- **Fix** (migration `fix_mission_reward_claiming`): added `claimed boolean
+  DEFAULT false` and `claimed_at timestamptz` to `user_missions`. Extended
+  `submit_ranked_match_result` to, in the same transaction that marks missions
+  completed, sum `reward_xp` for any mission that just became `completed=true
+  AND claimed=false`, mark those rows `claimed=true`, and add the sum on top
+  of the normal match XP credited to `user_battle_pass_progress.xp` (auto-claim
+  design — no separate claim UI existed to pair a manual claim button with, so
+  auto-crediting the moment a mission completes is the correct, safe behavior
+  here rather than leaving XP unclaimed in limbo). The `claimed` guard makes
+  this idempotent — replaying the same match submission (already deduped via
+  `client_submission_id`) or any future logic touching this table can't double-pay.
+- **Not fixed / out of scope**: `missions.reward_currency` exists as a column
+  but there is no currency/wallet table anywhere in the schema to credit it to
+  — the Shop is confirmed mock-only (see #5 below), so there is nothing for a
+  currency reward to feed into yet. Left as-is; would need an actual wallet
+  system, which is a new feature, not a bug fix.
+
 ## OPEN — needs follow-up
 
-### 2. Daily/weekly mission rewards are never actually credited
-- `missions.reward_xp` / `reward_currency` exist and are shown in the UI
-  (`src/lib/supabase-hooks.ts:103`, mapped from `supabase-data.ts:292`), but
-  no code path — client or the `submit_ranked_match_result` /
-  `ensure_daily_missions` Postgres functions — ever adds `reward_xp` to
-  `user_battle_pass_progress.xp` or any currency balance when
-  `user_missions.completed` flips to `true`. Missions complete and show a
-  checkmark, but the promised reward is not paid out anywhere.
-- **Recommended fix**: add a `claimed` boolean (or `claimed_at` timestamp) to
-  `user_missions`, and a new `SECURITY DEFINER` RPC `claim_mission_reward(mission_id)`
-  that: verifies `completed = true` and `claimed = false` for the caller, credits
-  `reward_xp` to the battle pass in the same transaction, then sets
-  `claimed = true`. This needs a migration — not done in this pass to avoid an
-  unreviewed schema change to a live production project without an explicit
-  claim-flow UI to pair it with.
-- **Risk if left as-is**: purely cosmetic missions (misleading players — "you
-  earned +100 XP" that never lands). Not data-corrupting, but a trust issue.
-
-### 3. Security advisor findings (Supabase `get_advisors`, live check)
-- 8 `SECURITY DEFINER` Postgres functions (`ensure_daily_missions`,
-  `ensure_user_bootstrap`, `handle_new_auth_user`, `handle_new_user`,
-  `invite_to_room`, `submit_ranked_match_result`, `track_achievement_event`)
-  are callable via `/rest/v1/rpc/...` by the `anon` role, several without a
-  fixed `search_path`. `submit_ranked_match_result` and `ensure_daily_missions`
-  being anon-callable is likely unintended — an unauthenticated client could
-  attempt to call them (they do internally check `auth.uid() is null →
-  raise exception`, so **not currently exploitable** for privilege escalation,
-  but should be tightened with `REVOKE EXECUTE ... FROM anon` for defense in
-  depth).
-- `handle_new_user` mutable search_path plus `SECURITY DEFINER` is a
-  standard Postgres injection risk pattern; should get `SET search_path = public`
-  pinned.
-- Storage bucket `avatars` is public and has 2 broad SELECT policies that
-  allow **listing** all files, not just fetching by known URL — minor
-  information-disclosure (avatar filenames/user IDs enumerable).
-- Leaked-password protection (HaveIBeenPwned check) is disabled in Supabase
-  Auth settings.
-- **None of these are release-blocking for a casual party/quiz game**, but all
-  four should be fixed before any wider marketing push, via
-  `supabase migration new harden_security_definer_functions` doing
-  `ALTER FUNCTION ... SET search_path = public` + selective `REVOKE EXECUTE FROM anon`
-  on functions that don't need anon access, plus enabling leaked-password
-  protection in the Auth dashboard.
+### 3. Security advisor findings (Supabase `get_advisors`, live check) — mostly FIXED
+- ~~8 `SECURITY DEFINER` Postgres functions callable by `anon`~~ **FIXED**
+  (migration `security_hardening_search_path_rpc_storage`): revoked `EXECUTE`
+  from `anon` on `ensure_daily_missions`, `ensure_user_bootstrap`,
+  `invite_to_room`, `submit_ranked_match_result`, `track_achievement_event`
+  (kept for `authenticated`, since real logged-in users legitimately call
+  these). `handle_new_user` / `handle_new_auth_user` are trigger-only
+  functions (`RETURNS trigger`, fired by `on_auth_user_created` on
+  `auth.users`) that were never meant to be reachable via
+  `/rest/v1/rpc/...` at all — revoked `EXECUTE` from both `anon` and
+  `authenticated` entirely. Verified directly via `pg_proc.proacl` /
+  `aclexplode` (not just the advisor, which caches and lagged behind the
+  fix at first read) — `anon` now has zero grants on any of these 7 functions.
+- ~~3 functions with mutable `search_path`~~ **FIXED**: `ALTER FUNCTION ...
+  SET search_path = public` applied to `handle_new_user`,
+  `increment_session_score`, `invite_to_room` (the other 5 already had it
+  pinned).
+- ~~`avatars` bucket allows listing~~ **FIXED**: dropped the two duplicate
+  broad `SELECT` policies on `storage.objects` for the `avatars` bucket.
+  Public URL downloads (`getPublicUrl`) are unaffected — a public bucket
+  serves objects directly without going through RLS at all — only
+  enumeration/listing via the Storage API is now blocked.
+- **Leaked-password protection — NOT fixed, needs a manual dashboard toggle.**
+  This is an Auth *service* setting (HaveIBeenPwned check), not a database
+  object — there is no SQL/migration path and no Supabase MCP tool exposes
+  the Auth config API to flip it programmatically. **Action needed:** Supabase
+  Dashboard → Authentication → Sign In / Providers → Password → enable
+  "Leaked password protection". One click, ~30 seconds, no app-side impact.
 
 ### 4. Friends feature — untested at DB level
 - `friendships` table exists (`requester_id`, `addressee_id`, `status` ∈
