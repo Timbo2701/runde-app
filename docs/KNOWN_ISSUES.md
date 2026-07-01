@@ -174,12 +174,24 @@ nothing here is speculative.
   currently cannot do — a host with 2 real friends in a room will be told
   nothing and dropped straight into a "multiplayer" round played entirely
   against hardcoded bots.
-- **Not fixed this pass**: the correct fix is wiring `allPlayers` from the
-  actual room/lobby roster (whatever hook the other party modes use, e.g.
-  `useRoom()`), which is the same "replace MOCK with Supabase Realtime" work
-  already tracked as a known follow-up in `docs/WHO_SAID_IT.md` — not a
-  small isolated bug fix, so left out of scope for this QA pass to avoid
-  touching the mode's core data flow without dedicated testing time.
+- **Update after further investigation**: this is NOT a who_said_it-specific
+  oversight. `src/features/lobby/lobby-screen.tsx` hardcodes the entire
+  lobby roster as exactly two players — `[{id:"you",...}, {id:"mika",...}]`
+  — for every mode, every room code, unconditionally. There is no `useRoom()`
+  hook, no live player-join state, and no real room roster anywhere in the
+  client for ANY party mode yet; grepping the codebase for "Mika" (the fixed
+  mock teammate) hits `lobby-screen.tsx`, `final-screen.tsx`, and every
+  single play-mode and result-mode file. The whole party system is
+  client-local mock pending the Realtime rebuild — who_said_it's
+  `MOCK_PLAYERS` is consistent with, not an exception to, that.
+- **Not fixed this pass**: there is no real "how many people actually
+  joined" signal anywhere in the client to wire the guard to without first
+  building actual room state — that's the same larger Realtime-rooms
+  project already tracked in `docs/WHO_SAID_IT.md`, now confirmed to be a
+  whole-app scope, not a single-mode fix. Forcing a fake signal (e.g.
+  reading `lobby-screen`'s hardcoded 2-person array) would just move the
+  dead code around without fixing anything real. Left as a documented
+  architectural gap rather than a patched-over bug.
 - **Verified working correctly in this pass**: write phase (identical visual
   weight for target vs. fake-writer role hint, own submission correctly
   disabled for voting), vote phase (own fake answer correctly greyed out/
