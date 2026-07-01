@@ -173,6 +173,36 @@ export function StageScreen({ children, stageColor, pattern = "confetti", scroll
 
   return (
     <View style={{ flex: 1, backgroundColor: stageColor }}>
+      {/* Ambient depth glow — breaks up the flat solid fill with a soft light
+          source from the top-left and a dimmer echo bottom-right, tinted to
+          the screen's own stage color so it reads as depth, not decoration. */}
+      <View style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+        <View
+          style={{
+            position: "absolute",
+            width: 520,
+            height: 520,
+            borderRadius: 999,
+            top: -220,
+            left: -160,
+            backgroundColor: colors.white,
+            opacity: 0.08,
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            width: 420,
+            height: 420,
+            borderRadius: 999,
+            bottom: -180,
+            right: -140,
+            backgroundColor: colors.ink,
+            opacity: 0.1,
+          }}
+        />
+      </View>
+
       {/* Decorative animated background */}
       <View style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         <Pattern type={pattern} reducedMotion={reducedMotion} />

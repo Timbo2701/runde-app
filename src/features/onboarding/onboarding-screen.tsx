@@ -103,6 +103,7 @@ export function OnboardingScreen() {
                     fontFamily: fonts.displayExtraBold,
                     fontSize: 30,
                     lineHeight: 34,
+                    letterSpacing: -0.4,
                     textAlign: "center",
                   }}
                 >

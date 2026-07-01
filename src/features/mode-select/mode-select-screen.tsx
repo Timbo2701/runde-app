@@ -186,6 +186,7 @@ export function ModeSelectScreen() {
             fontFamily: fonts.displayExtraBold,
             fontSize: 32,
             lineHeight: 36,
+            letterSpacing: -0.6,
           }}
         >
           Was wird heute gespielt?

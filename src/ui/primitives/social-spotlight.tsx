@@ -46,7 +46,7 @@ export function SocialSpotlight({ accent = colors.sun, label, sublabel, size = 1
         </View>
       </View>
       <View style={{ alignItems: "center", gap: 3 }}>
-        <Text selectable style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 30, textAlign: "center", lineHeight: 34 }}>
+        <Text selectable style={{ color: colors.white, fontFamily: fonts.displayExtraBold, fontSize: 30, textAlign: "center", lineHeight: 34, letterSpacing: -0.4 }}>
           {label}
         </Text>
         {sublabel ? (
