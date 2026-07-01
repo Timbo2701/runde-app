@@ -99,14 +99,57 @@ nothing here is speculative.
   Dashboard → Authentication → Sign In / Providers → Password → enable
   "Leaked password protection". One click, ~30 seconds, no app-side impact.
 
-### 4. Friends feature — untested at DB level
-- `friendships` table exists (`requester_id`, `addressee_id`, `status` ∈
-  {pending, accepted, blocked}) but has **0 rows** in production — the feature
-  has apparently never been exercised end-to-end by a real user. Not verified
-  further in this pass (client code lives in
-  `src/features/friends/friends-screen.tsx`, which was mid-diff/uncommitted
-  at audit time per `git status`). Recommend a manual add/accept/block
-  smoke test before shipping any friends-dependent feature (e.g. party invites).
+### 4. Friends feature — was completely broken (total outage), now fixed
+- **Found via live Playwright walkthrough** (2026-07-01): the Friends screen
+  showed "Freunde konnten nicht geladen werden" (Friends could not be
+  loaded) on every single load, for every user, unconditionally. This is
+  why `friendships` had 0 rows in production — the feature was never
+  reachable, not merely untested.
+- **Root cause (two independent bugs stacked):**
+  1. `fetchFriends()` in `supabase-data.ts` embedded the same target table
+     (`profiles`) twice in one PostgREST `select` via two different FK
+     hints (`profiles!friendships_addressee_id_fkey(...)` and
+     `profiles!friendships_requester_id_fkey(...)`) with no alias.
+     PostgREST rejects this outright with `42712: table name
+     "friendships_profiles_1" specified more than once` — confirmed via a
+     captured live network response. **Fixed**: added explicit
+     `addressee:` / `requester:` aliases to both embeds and updated the
+     mapping code (`row.addressee` / `row.requester`) to match.
+  2. Underneath that, `friendships.requester_id` / `addressee_id` had
+     foreign keys pointing at `auth.users(id)` instead of
+     `public.profiles(id)` — even with the alias fix, PostgREST would have
+     had no relationship path to embed `profiles` through at all, since it
+     only auto-discovers embeds via FKs into the schema it can see.
+     **Fixed** (migration `fix_friendships_fk_target_profiles`): retargeted
+     both FKs at `public.profiles(id)` — safe because the table had 0 rows,
+     and `profiles.id` is 1:1 with `auth.users.id` for every real user
+     (bots have a `profiles` row with no `auth.users` row at all, which is
+     also why the old auth.users-pointing FK could never have worked for
+     bot-involving friendships either).
+- **Also fixed** (migration `fix_friendships_bidirectional_duplicate`):
+  the `UNIQUE (requester_id, addressee_id)` constraint only prevented an
+  exact-direction duplicate — user A could send a request to B, and B
+  could independently send a *separate* request back to A, creating two
+  live rows for the same pair (and no path to ever reconcile them into one
+  friendship). Added a bidirectional unique index on
+  `(LEAST(requester_id,addressee_id), GREATEST(requester_id,addressee_id))`
+  and confirmed live that the reverse-direction insert now correctly fails
+  with a unique-violation instead of succeeding.
+- **Verified**: self-request already correctly blocked by an existing
+  `CHECK (requester_id <> addressee_id)` constraint (not new, already fine).
+  Query fix confirmed live via a direct PostgREST call with the anon key
+  returning `[]` (valid empty response, RLS-gated) instead of a `400`.
+- **Minor, not fixed**: 5 of 60 seeded bots share a display name with
+  another bot in a different league (`Ayri`, `Kaito`, `Luma`, `Roxy`,
+  `Zeno` each appear twice) — cosmetically confusing in friend search
+  results (can't tell which "Ayri" you're adding), but each bot has a
+  distinct ID and works correctly regardless. Low-priority seed-data
+  cleanup, not a functional bug.
+- Recommend a manual add/accept smoke test with two real accounts before
+  shipping any friends-dependent feature (e.g. party invites) — the
+  loading crash is now fixed but the accept/decline/remove paths
+  (`respondFriendRequest`, `removeFriend`) were not independently
+  exercised end-to-end in this pass.
 
 ### 5. Shop remains a mock (by design, per task scope)
 - Confirmed no purchase/payment wiring was touched or expected to be touched.

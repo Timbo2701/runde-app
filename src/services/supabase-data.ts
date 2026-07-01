@@ -413,16 +413,19 @@ export type UserSearchResult = {
 };
 
 export async function fetchFriends(userId: string): Promise<FriendRecord[]> {
+  // NOTE: embedding the same target table (profiles) twice via two different
+  // FK hints in one select requires explicit aliases, otherwise PostgREST
+  // rejects the query with 42712 "table name specified more than once".
   const { data, error } = await getSupabase()
     .from("friendships")
-    .select("id, requester_id, addressee_id, status, profiles!friendships_addressee_id_fkey(id,display_name,avatar_initials,is_online,last_seen_at), profiles!friendships_requester_id_fkey(id,display_name,avatar_initials,is_online,last_seen_at)")
+    .select("id, requester_id, addressee_id, status, addressee:profiles!friendships_addressee_id_fkey(id,display_name,avatar_initials,is_online,last_seen_at), requester:profiles!friendships_requester_id_fkey(id,display_name,avatar_initials,is_online,last_seen_at)")
     .or(`requester_id.eq.${userId},addressee_id.eq.${userId}`)
     .in("status", ["accepted", "pending"]);
   if (error) throw error;
   return (data ?? []).map((value) => {
     const row = asObject(value);
     const isRequester = asString(row.requester_id) === userId;
-    const friendProfile = asObject(isRequester ? row["profiles!friendships_addressee_id_fkey"] : row["profiles!friendships_requester_id_fkey"]);
+    const friendProfile = asObject(isRequester ? row.addressee : row.requester);
     return {
       friendshipId: asString(row.id),
       friendId: asString(friendProfile.id),
