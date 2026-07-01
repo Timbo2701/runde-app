@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
 import { useRanked } from "@/lib/ranked-context";
+import { calculateBattlePassLevel } from "@/lib/battle-pass-logic";
 import { useBattlePassRewards } from "@/lib/supabase-hooks";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AppHeader } from "@/ui/primitives/app-header";
@@ -108,7 +109,9 @@ export function RankedPassScreen() {
   const { rankedProfile } = useRanked();
   const { data: rewards, loading, error, refresh } = useBattlePassRewards();
   const reducedMotion = useReducedMotion();
-  const xpProgress = rankedProfile.battlePassXp / 1000;
+  const { level: computedLevel, currentLevelXp, xpForNextLevel, progressPercent, isMaxLevel } =
+    calculateBattlePassLevel(rankedProfile.battlePassXp, { maxLevel: 50 });
+  const xpProgress = progressPercent;
 
   const fullRewards = rewards;
 
@@ -184,10 +187,10 @@ export function RankedPassScreen() {
           <View style={{ gap: spacing.sm }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <Text style={{ color: colors.white, fontFamily: fonts.bodyBold, fontSize: 16 }}>
-                Level {rankedProfile.battlePassLevel} / 50
+                Level {computedLevel} / 50
               </Text>
               <Text style={{ color: colors.whiteSoft, fontFamily: fonts.mono, fontSize: 12 }}>
-                {rankedProfile.battlePassXp} / 1000 XP
+                {isMaxLevel ? `${xpForNextLevel} / ${xpForNextLevel}` : `${currentLevelXp} / ${xpForNextLevel}`} XP
               </Text>
             </View>
             <View style={{
@@ -226,7 +229,7 @@ export function RankedPassScreen() {
               key={reward.level}
               entering={reducedMotion ? undefined : FadeInDown.delay(i * 25).duration(200)}
             >
-              <RewardRow reward={reward} currentLevel={rankedProfile.battlePassLevel} />
+              <RewardRow reward={reward} currentLevel={computedLevel} />
             </Animated.View>
           ))}
         </View>

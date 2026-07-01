@@ -454,6 +454,8 @@ const ALL_QUESTIONS: Record<GameModeType, RoundQuestion[]> = {
   "bluff": BLUFF_QUESTIONS,
   "zeichen-vote": ZEICHEN_PROMPTS,
   "reihenfolge": [],
+  // who_said_it questions come from the `party_questions` Supabase table
+  // (see who-said-it-play.tsx / fetchPartyQuestions), not this static file.
   "who_said_it": [],
 };
 

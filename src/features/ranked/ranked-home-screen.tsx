@@ -275,10 +275,8 @@ export function RankedHomeScreen() {
           style={{ marginTop: spacing.xl }}
         >
           <BattlePassTeaser
-            level={battlePass.data?.level ?? rankedProfile.battlePassLevel}
             xp={battlePass.data?.xp ?? rankedProfile.battlePassXp}
-            maxXp={1000}
-            maxLevel={battlePass.data?.maxLevel ?? 0}
+            maxLevel={battlePass.data?.maxLevel ?? 50}
             rewards={passRewards.data}
           />
         </Animated.View>

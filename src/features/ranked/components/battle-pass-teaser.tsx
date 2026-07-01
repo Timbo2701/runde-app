@@ -2,18 +2,21 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { colors, fonts, radii, spacing } from "@/design/tokens";
+import { calculateBattlePassLevel } from "@/lib/battle-pass-logic";
 import type { BattlePassReward } from "@/types/ranked";
 
 interface BattlePassTeaserProps {
-  level: number;
+  /** Lifetime cumulative XP (as stored in user_battle_pass_progress.xp). */
   xp: number;
-  maxXp?: number;
   maxLevel: number;
   rewards: BattlePassReward[];
 }
 
-export function BattlePassTeaser({ level, xp, maxXp = 1000, maxLevel, rewards }: BattlePassTeaserProps) {
-  const progress = xp / maxXp;
+export function BattlePassTeaser({ xp, maxLevel, rewards }: BattlePassTeaserProps) {
+  const { level, currentLevelXp, xpForNextLevel, progressPercent, isMaxLevel } = calculateBattlePassLevel(xp, {
+    maxLevel: maxLevel || undefined,
+  });
+  const progress = progressPercent;
   const nextRewards = rewards.filter((reward) => reward.level > level).slice(0, 2);
 
   return (
@@ -66,7 +69,7 @@ export function BattlePassTeaser({ level, xp, maxXp = 1000, maxLevel, rewards }:
           }} />
         </View>
         <Text style={{ color: colors.whiteSoft, fontFamily: fonts.mono, fontSize: 10 }}>
-          {xp} / {maxXp} XP • {Math.max(0, maxLevel - level)} Level bis Season-Ende
+          {isMaxLevel ? `${xpForNextLevel} / ${xpForNextLevel}` : `${currentLevelXp} / ${xpForNextLevel}`} XP • {Math.max(0, maxLevel - level)} Level bis Season-Ende
         </Text>
       </View>
 
