@@ -17,9 +17,40 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 type StageScreenProps = PropsWithChildren<{
   stageColor: string;
-  pattern?: "confetti" | "rings" | "dots";
+  pattern?: "confetti" | "rings" | "dots" | "orbit";
   scrollEnabled?: boolean;
 }>;
+
+// Ambient depth glow — one distinct light-source profile per pattern type,
+// so screens don't all read as the same flat fill with an identical glow
+// pasted on top. Position, size, tint, and intensity vary per profile.
+type GlowSpec = { top?: number; bottom?: number; left?: number; right?: number; size: number; color: string; opacity: number };
+const GLOW_PROFILES: Record<NonNullable<StageScreenProps["pattern"]>, GlowSpec[]> = {
+  // Structured / navigational screens (auth, lobby, mode-select, ranked home):
+  // single confident light source, top-left, echoed faintly bottom-right.
+  rings: [
+    { top: -220, left: -160, size: 520, color: colors.white, opacity: 0.08 },
+    { bottom: -180, right: -140, size: 420, color: colors.ink, opacity: 0.1 },
+  ],
+  // Calmer detail/list screens (profile, leaderboard, pass, cosmetics):
+  // one soft wide glow centered high, nothing competing at the bottom.
+  dots: [
+    { top: -260, left: -80, size: 620, color: colors.white, opacity: 0.06 },
+  ],
+  // Celebratory screens (home, setup): warm sun-tinted glow opposite a cool
+  // ink pocket, diagonal, higher contrast for an energetic first impression.
+  confetti: [
+    { top: -180, right: -180, size: 480, color: colors.sun, opacity: 0.1 },
+    { bottom: -200, left: -120, size: 380, color: colors.ink, opacity: 0.12 },
+  ],
+  // Shop: a distinct three-point "spotlight rig" — brighter, more directional,
+  // evoking product-shelf lighting rather than ambient party glow.
+  orbit: [
+    { top: -140, left: -100, size: 360, color: colors.sun, opacity: 0.09 },
+    { top: 180, right: -160, size: 300, color: colors.white, opacity: 0.05 },
+    { bottom: -220, left: 60, size: 460, color: colors.ink, opacity: 0.14 },
+  ],
+};
 
 // Floating animated shape — gently drifts up/down and rotates
 function FloatingShape({
@@ -73,6 +104,10 @@ function FloatingShape({
 }
 
 function Pattern({ type, reducedMotion }: { type: NonNullable<StageScreenProps["pattern"]>; reducedMotion: boolean }) {
+  if (type === "orbit") {
+    return <OrbitPattern reducedMotion={reducedMotion} />;
+  }
+
   if (type === "rings") {
     return (
       <>
@@ -168,39 +203,62 @@ function Pattern({ type, reducedMotion }: { type: NonNullable<StageScreenProps["
   );
 }
 
+// Shop-only decorative layer: small rotated squares (price-tag silhouettes)
+// instead of rings/dots/confetti, so the storefront reads as its own place.
+function OrbitPattern({ reducedMotion }: { reducedMotion: boolean }) {
+  return (
+    <>
+      <FloatingShape
+        style={{ position: "absolute", width: 34, height: 34, borderRadius: 9, borderWidth: 2, borderColor: colors.whiteFaint, right: 28, top: 100 }}
+        delay={0}
+        duration={5200}
+        yRange={reducedMotion ? 0 : 10}
+        rotation={reducedMotion ? 0 : 14}
+      />
+      <FloatingShape
+        style={{ position: "absolute", width: 20, height: 20, borderRadius: 6, backgroundColor: colors.whiteFaint, left: 24, top: 210 }}
+        delay={500}
+        duration={4600}
+        yRange={reducedMotion ? 0 : 8}
+        rotation={reducedMotion ? 0 : -10}
+      />
+      <FloatingShape
+        style={{ position: "absolute", width: 46, height: 46, borderRadius: 12, borderWidth: 2, borderColor: colors.whiteFaint, right: -10, bottom: 180 }}
+        delay={900}
+        duration={5800}
+        yRange={reducedMotion ? 0 : 12}
+        rotation={reducedMotion ? 0 : 18}
+      />
+    </>
+  );
+}
+
 export function StageScreen({ children, stageColor, pattern = "confetti", scrollEnabled = false }: StageScreenProps) {
   const reducedMotion = useReducedMotion();
 
   return (
     <View style={{ flex: 1, backgroundColor: stageColor }}>
-      {/* Ambient depth glow — breaks up the flat solid fill with a soft light
-          source from the top-left and a dimmer echo bottom-right, tinted to
-          the screen's own stage color so it reads as depth, not decoration. */}
+      {/* Ambient depth glow — profile varies per pattern type so screens
+          don't all read as the same flat fill with an identical light
+          source pasted on top. See GLOW_PROFILES above. */}
       <View style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
-        <View
-          style={{
-            position: "absolute",
-            width: 520,
-            height: 520,
-            borderRadius: 999,
-            top: -220,
-            left: -160,
-            backgroundColor: colors.white,
-            opacity: 0.08,
-          }}
-        />
-        <View
-          style={{
-            position: "absolute",
-            width: 420,
-            height: 420,
-            borderRadius: 999,
-            bottom: -180,
-            right: -140,
-            backgroundColor: colors.ink,
-            opacity: 0.1,
-          }}
-        />
+        {GLOW_PROFILES[pattern].map((glow, i) => (
+          <View
+            key={i}
+            style={{
+              position: "absolute",
+              width: glow.size,
+              height: glow.size,
+              borderRadius: 999,
+              top: glow.top,
+              bottom: glow.bottom,
+              left: glow.left,
+              right: glow.right,
+              backgroundColor: glow.color,
+              opacity: glow.opacity,
+            }}
+          />
+        ))}
       </View>
 
       {/* Decorative animated background */}

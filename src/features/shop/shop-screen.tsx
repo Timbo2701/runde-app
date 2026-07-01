@@ -66,12 +66,24 @@ function CategoryPill({
 
 function FeaturedCard({ item, isOwned, onBuy }: { item: ShopItem; isOwned: boolean; onBuy: () => void }) {
   return (
+    // Outer shell — the "machined tray" the glass card sits in.
+    <View
+      style={{
+        borderRadius: radii.card + 8,
+        borderCurve: "continuous",
+        backgroundColor: "rgba(255,216,77,0.06)",
+        borderWidth: 1,
+        borderColor: "rgba(255,216,77,0.25)",
+        padding: 6,
+      }}
+    >
+    {/* Inner core — concentric radius, its own background + inset highlight. */}
     <View
       style={{
         borderRadius: radii.card,
         borderCurve: "continuous",
-        backgroundColor: "rgba(255,216,77,0.13)",
-        borderWidth: 2,
+        backgroundColor: "rgba(255,216,77,0.14)",
+        borderWidth: 1.5,
         borderColor: colors.sun,
         padding: spacing.xl,
         gap: 14,
@@ -174,23 +186,43 @@ function FeaturedCard({ item, isOwned, onBuy }: { item: ShopItem; isOwned: boole
         </View>
       </View>
 
-      {/* CTA */}
+      {/* CTA — "island" pill with the trailing arrow nested in its own
+          circular chip, flush with the button's inner padding. */}
       <Pressable
         style={({ pressed }) => ({
-          backgroundColor: isOwned ? "rgba(255,216,77,0.25)" : colors.sun,
-          borderRadius: radii.control,
-          borderCurve: "continuous",
-          paddingVertical: 15,
+          flexDirection: "row",
           alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: isOwned ? "rgba(255,216,77,0.25)" : colors.sun,
+          borderRadius: radii.round,
+          paddingVertical: 6,
+          paddingLeft: 22,
+          paddingRight: 6,
+          gap: 10,
           opacity: pressed && !isOwned ? 0.88 : 1,
+          transform: [{ scale: pressed && !isOwned ? 0.98 : 1 }],
         })}
         onPress={isOwned ? undefined : onBuy}
         accessibilityRole="button"
         accessibilityLabel="Party Host Pass freischalten (Mock)"
       >
-        <Text style={{ color: isOwned ? colors.sun : colors.ink, fontFamily: fonts.bodyBold, fontSize: 17 }}>
-          {isOwned ? "✓ Gekauft!" : `${item.unlockText} — ${item.priceLabel}`}
+        <Text style={{ color: isOwned ? colors.sun : colors.ink, fontFamily: fonts.bodyBold, fontSize: 16, paddingVertical: 9 }}>
+          {isOwned ? "Gekauft" : `${item.unlockText} — ${item.priceLabel}`}
         </Text>
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: radii.round,
+            backgroundColor: isOwned ? "rgba(255,255,255,0.35)" : "rgba(33,24,43,0.14)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: isOwned ? colors.sun : colors.ink, fontSize: 16, fontFamily: fonts.bodyBold }}>
+            {isOwned ? "✓" : "→"}
+          </Text>
+        </View>
       </Pressable>
 
       {item.legalNote && (
@@ -205,6 +237,7 @@ function FeaturedCard({ item, isOwned, onBuy }: { item: ShopItem; isOwned: boole
           {item.legalNote} · Platzhalter — kein echter Kauf.
         </Text>
       )}
+    </View>
     </View>
   );
 }
@@ -230,6 +263,17 @@ function ShopItemCard({ item, index, reducedMotion, isOwned, onBuy }: { item: Sh
     <Animated.View
       entering={reducedMotion ? undefined : FadeInDown.delay(index * 55).duration(240)}
     >
+      {/* Outer shell — a faint tray the item card sits in. */}
+      <View
+        style={{
+          borderRadius: radii.card + 5,
+          borderCurve: "continuous",
+          backgroundColor: "rgba(255,255,255,0.03)",
+          padding: 4,
+          opacity: isComingSoon ? 0.62 : 1,
+        }}
+      >
+      {/* Inner core — concentric radius, own tint, inset top highlight. */}
       <View
         style={{
           borderRadius: radii.card,
@@ -237,13 +281,13 @@ function ShopItemCard({ item, index, reducedMotion, isOwned, onBuy }: { item: Sh
           backgroundColor: bgColor,
           borderWidth: isPopular || isNew ? 1.5 : 1,
           borderColor,
+          borderTopColor: isPopular || isNew ? borderColor : "rgba(255,255,255,0.16)",
           padding: spacing.xl,
           gap: 12,
-          opacity: isComingSoon ? 0.62 : 1,
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          {/* Icon */}
+          {/* Icon well — its own nested squircle, matching the double-bezel language. */}
           <View
             style={{
               width: 52,
@@ -254,6 +298,7 @@ function ShopItemCard({ item, index, reducedMotion, isOwned, onBuy }: { item: Sh
               justifyContent: "center",
               borderWidth: 1,
               borderColor: `${item.accentColor}44`,
+              borderTopColor: `${item.accentColor}66`,
             }}
           >
             <Text style={{ fontSize: 26 }}>{item.emoji}</Text>
@@ -321,14 +366,14 @@ function ShopItemCard({ item, index, reducedMotion, isOwned, onBuy }: { item: Sh
             style={({ pressed }) => ({
               paddingHorizontal: 18,
               paddingVertical: 10,
-              borderRadius: radii.control,
-              borderCurve: "continuous",
+              borderRadius: radii.round,
               backgroundColor: isOwned
                 ? "rgba(255,255,255,0.10)"
                 : isComingSoon
                 ? "rgba(255,255,255,0.12)"
                 : colors.sun,
               opacity: pressed ? 0.8 : 1,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
             })}
           >
             <Text
@@ -342,6 +387,7 @@ function ShopItemCard({ item, index, reducedMotion, isOwned, onBuy }: { item: Sh
             </Text>
           </Pressable>
         </View>
+      </View>
       </View>
     </Animated.View>
   );
@@ -368,23 +414,36 @@ export function ShopScreen() {
   });
 
   return (<>
-    <StageScreen stageColor={colors.stageGrapeDeep} pattern="rings" scrollEnabled>
+    <StageScreen stageColor={colors.stageGrapeDeep} pattern="orbit" scrollEnabled>
       <AppHeader title="Shop" />
 
       {/* Hero */}
       <Animated.View
         entering={reducedMotion ? undefined : FadeInUp.duration(260)}
-        style={{ paddingTop: 8, paddingBottom: 4, gap: 4 }}
+        style={{ paddingTop: 8, paddingBottom: 4, gap: 10 }}
       >
-        <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 12, letterSpacing: 2 }}>
-          RUNDE SHOP
-        </Text>
+        <View
+          style={{
+            alignSelf: "flex-start",
+            backgroundColor: "rgba(255,216,77,0.14)",
+            borderWidth: 1,
+            borderColor: "rgba(255,216,77,0.3)",
+            borderRadius: radii.round,
+            paddingHorizontal: 12,
+            paddingVertical: 5,
+          }}
+        >
+          <Text style={{ color: colors.sun, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 2 }}>
+            RUNDE SHOP
+          </Text>
+        </View>
         <Text
           style={{
             color: colors.white,
             fontFamily: fonts.displayExtraBold,
             fontSize: 34,
             lineHeight: 38,
+            letterSpacing: -0.6,
           }}
         >
           Mach die Nacht{"\n"}unvergesslich.
