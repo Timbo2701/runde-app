@@ -145,11 +145,34 @@ nothing here is speculative.
   results (can't tell which "Ayri" you're adding), but each bot has a
   distinct ID and works correctly regardless. Low-priority seed-data
   cleanup, not a functional bug.
-- Recommend a manual add/accept smoke test with two real accounts before
-  shipping any friends-dependent feature (e.g. party invites) — the
-  loading crash is now fixed but the accept/decline/remove paths
-  (`respondFriendRequest`, `removeFriend`) were not independently
-  exercised end-to-end in this pass.
+- **Update: full accept/decline/remove flow now tested end-to-end and
+  confirmed working (2026-07-01).** Two real accounts (QA-Tester,
+  MutigeKokosnuss) plus a bot were used to exercise every path, each
+  enforced through real RLS (via `SET LOCAL request.jwt.claims` — not a
+  superuser bypass) and, for the final read, a genuine login access token
+  hitting the actual REST endpoint the client calls:
+  - **Send → accept**: QA-Tester sent a request to MutigeKokosnuss (inserted
+    `pending`), MutigeKokosnuss accepted (`UPDATE ... status='accepted'`
+    under her own RLS identity), both sides' `fetchFriends()`-equivalent
+    view correctly shows the other as a friend.
+  - **Send → decline**: a second real account sent a request to QA-Tester;
+    QA-Tester declined (`respondFriendRequest(id, false)` → `DELETE`), row
+    is gone, no leftover state either side.
+  - **Remove**: an accepted friendship was removed by the non-requesting
+    side (`removeFriend`), confirming the RLS delete policy
+    (`requester_id OR addressee_id`) works for both directions, not just
+    the original sender.
+  - **Bots auto-accept** (new, built this pass — see migration
+    `friendships_bot_auto_accept`): a `BEFORE INSERT` trigger
+    (`auto_accept_bot_friend_request`) flips `status` to `'accepted'` in
+    the same write whenever the addressee is a bot (`profiles.is_bot =
+    true`), so a request to a bot never sits in "pending" — the bot
+    "accepts" instantly and shows up in the friends list right away.
+    Verified with a real login token against the live REST endpoint: bot
+    "Ben" appeared as an `accepted` friend with correctly nested profile
+    data in a single `fetchFriends()` call, no extra round-trip needed.
+  - All test rows cleaned up afterward; `friendships` is back to 0 rows in
+    production.
 
 ### 5. Shop remains a mock (by design, per task scope)
 - Confirmed no purchase/payment wiring was touched or expected to be touched.
